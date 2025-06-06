@@ -1,21 +1,16 @@
-use clap::Parser;
-
-/// MyApp – does something cool with a config file
-#[derive(Parser, Debug)]
-#[command(name = "ict_server")]
-#[command(about = "Runs the ICT server", long_about = None)]
-struct Args {
-    /// Path to the configuration file
-    #[arg(
-        short,
-        long,
-        value_name = "PATH-TO-FILE",
-        default_value = "configs/ict_server.toml"
-    )]
-    config: String,
-}
+mod ict_args;
+mod ict_config;
+use ict_config::load_config;
 
 fn main() {
-    let args = Args::parse();
+    let args = ict_args::load_args();
     println!("Using config file: {}", args.config);
+    let settings = match load_config(&args.config) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Error loading config from {}: {}", args.config, e);
+            std::process::exit(1);
+        }
+    };
+    println!("Using DB file: {}", settings.database.path);
 }
