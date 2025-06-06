@@ -1,2 +1,2 @@
 [database]
-path = "~/repos/ict_server/db/ict_server.db"
+path = "db/ict_server.db" #assuming we are running from root of repo
