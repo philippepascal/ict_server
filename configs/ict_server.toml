@@ -1,0 +1,2 @@
+[database]
+path = "~/repos/ict_server/db/ict_server.db"
