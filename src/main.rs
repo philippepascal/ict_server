@@ -3,6 +3,8 @@ mod ict_config;
 
 use ict_config::load_config;
 use ict_server::ict_db::Db;
+use ict_server::ict_operations::{ register};
+
 
 use crate::ict_args::Operation;
 
@@ -19,11 +21,13 @@ fn main() {
     };
     println!("Using DB file: {}", settings.database.path);
 
-    let _db = Db::new(&settings.database.path).expect("Failed to open DB");
+    let db = Db::new(&settings.database.path).expect("Failed to open DB");
 
     match &args.operation {
         Operation::Register { uuid, public_key } => {
             println!("Registering new client with uuid {} and public key {}",uuid,public_key);
+            let secret = register(db, uuid, public_key).expect("Registration Failure");
+            println!("Registration successful, secret: {}",secret);
         }
         Operation::Authorize { uuid } => {
             println!("Authorizing a registered client with uuid {}",uuid);
