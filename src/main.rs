@@ -1,9 +1,8 @@
 mod ict_args;
 mod ict_config;
-mod ict_db;
 
 use ict_config::load_config;
-use ict_db::Db;
+use ict_server::ict_db::Db;
 
 fn main() {
     let args = ict_args::load_args();

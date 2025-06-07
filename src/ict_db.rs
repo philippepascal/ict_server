@@ -1,4 +1,4 @@
-// src/db.rs
+
 use rsa::{
     pkcs8::{DecodePrivateKey, EncodePrivateKey},
     RsaPrivateKey,
@@ -40,6 +40,13 @@ impl Db {
         Ok(db)
     }
 
+    pub fn new_test_db()-> Result<Self, Box<dyn std::error::Error>> {
+        let conn = Connection::open_in_memory()?;
+        let db = Db { conn };
+        db.init()?;
+        Ok(db)
+    }
+
     fn init(&self) -> Result<(), Box<dyn std::error::Error>> {
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS registered_devices (
@@ -65,7 +72,7 @@ impl Db {
         Ok(())
     }
 
-    pub fn get_device(&self, id: &str) -> Result<Option<Device>, Box<dyn std::error::Error>> {
+    pub fn get_device(&self, id: Vec<u8>) -> Result<Option<Device>, Box<dyn std::error::Error>> {
         let mut stmt = self
             .conn
             .prepare("SELECT id, wrapped_pk, totp_secret FROM registered_devices WHERE id = ?1")?;
