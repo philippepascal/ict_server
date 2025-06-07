@@ -447,6 +447,7 @@ dependencies = [
  "rsa",
  "rusqlite",
  "serde",
+ "thiserror",
  "totp-rs",
  "uuid",
 ]

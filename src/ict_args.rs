@@ -48,21 +48,21 @@ pub enum Operation {
         message: String,
     },
     #[command(about = "Lists all clients")]
-    List_Clients,
+    ListClients,
     #[command(about = "Displays info and status of a client")]
-    Describe_Client {
+    DescribeClient {
         #[arg(short, long, value_name = "UUID of client")]
         uuid: String,
     },
     #[command(about = "Associates a relay with a client")]
-    Associate_Relay {
+    AssociateRelay {
         #[arg(short, long, value_name = "UUID of client")]
         uuid: String,
         #[arg(short, long, value_name = "id of relay")]
         relay: u32,
     },
     #[command(about = "Removes all relay of a client")]
-    Clear_Relays {
+    ClearRelays {
         #[arg(short, long, value_name = "UUID of client")]
         uuid: String,
     },

@@ -1,4 +1,3 @@
-
 use rsa::{
     pkcs8::{DecodePrivateKey, EncodePrivateKey},
     RsaPrivateKey,
@@ -6,6 +5,8 @@ use rsa::{
 use rusqlite::{params, Connection, Result};
 use totp_rs::Secret;
 use uuid::Uuid;
+
+use crate::ict_errors::ICTError;
 
 #[derive(Debug)]
 pub struct Device {
@@ -19,7 +20,7 @@ impl Device {
         id_blob: &Vec<u8>,
         wrapped_pk: &Vec<u8>,
         secret_str: &Vec<u8>,
-    ) -> Result<Option<Device>, Box<dyn std::error::Error>> {
+    ) -> Result<Option<Device>, ICTError> {
         Ok(Some(Device {
             id: Uuid::from_slice(&id_blob)?,
             wrapped_pk: RsaPrivateKey::from_pkcs8_der(&wrapped_pk)?,
@@ -33,21 +34,21 @@ pub struct Db {
 }
 
 impl Db {
-    pub fn new(db_path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(db_path: &str) -> Result<Self, ICTError> {
         let conn = Connection::open(db_path)?;
         let db = Db { conn };
         db.init()?;
         Ok(db)
     }
 
-    pub fn new_test_db()-> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new_test_db()-> Result<Self, ICTError> {
         let conn = Connection::open_in_memory()?;
         let db = Db { conn };
         db.init()?;
         Ok(db)
     }
 
-    fn init(&self) -> Result<(), Box<dyn std::error::Error>> {
+    fn init(&self) -> Result<(), ICTError> {
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS registered_devices (
                 id BLOB PRIMARY KEY,
@@ -59,7 +60,7 @@ impl Db {
         Ok(())
     }
 
-    pub fn add_device(&self, device: &Device) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn add_device(&self, device: &Device) -> Result<(), ICTError> {
         self.conn.execute(
             "INSERT INTO registered_devices (id, wrapped_pk, totp_secret)
              VALUES (?1, ?2, ?3)",
@@ -72,7 +73,7 @@ impl Db {
         Ok(())
     }
 
-    pub fn get_device(&self, id: Vec<u8>) -> Result<Option<Device>, Box<dyn std::error::Error>> {
+    pub fn get_device(&self, id: Vec<u8>) -> Result<Option<Device>, ICTError> {
         let mut stmt = self
             .conn
             .prepare("SELECT id, wrapped_pk, totp_secret FROM registered_devices WHERE id = ?1")?;
@@ -85,7 +86,7 @@ impl Db {
         }
     }
 
-    pub fn update_device(&self, device: &Device) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn update_device(&self, device: &Device) -> Result<(), ICTError> {
         self.conn.execute(
             "UPDATE registered_devices SET wrapped_pk = ?2, totp_secret = ?3 WHERE id = ?1",
             params![device.id.as_bytes(), device.wrapped_pk.to_pkcs8_der()?.as_bytes().to_vec(), device.totp_secret.to_bytes()?],
@@ -106,7 +107,7 @@ impl Db {
         Ok(count)
     }
 
-    pub fn print_all_devices(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn print_all_devices(&self) -> Result<(), ICTError> {
         let mut stmt = self
             .conn
             .prepare("SELECT id, wrapped_pk, totp_secret FROM registered_devices")?;

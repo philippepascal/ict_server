@@ -19,34 +19,34 @@ fn main() {
     };
     println!("Using DB file: {}", settings.database.path);
 
-    let db = Db::new(&settings.database.path).expect("Failed to open DB");
+    let _db = Db::new(&settings.database.path).expect("Failed to open DB");
 
     match &args.operation {
         Operation::Register { uuid, public_key } => {
-            println!("Registering new client");
+            println!("Registering new client with uuid {} and public key {}",uuid,public_key);
         }
         Operation::Authorize { uuid } => {
-            println!("Authorizing a registered client");
+            println!("Authorizing a registered client with uuid {}",uuid);
         }
         Operation::Unauthorize { uuid } => {
-            println!("Unauthorizing a registered client (can be re-authorized)");
+            println!("Unauthorizing a registered client (can be re-authorized) with uuid {}",uuid);
         }
         Operation::Delete { uuid } => {
-            println!("Deleting a registration (can not be undone)");
+            println!("Deleting a registration (can not be undone) with uuid {}",uuid);
         }
         Operation::Operate { uuid, message } => {
-            println!("validate the message passed by client, and operate associated relays");
+            println!("validate the message passed by client, and operate associated relays with uuid {} and message {}",uuid,message);
         }
-        Operation::List_Clients {} => {
+        Operation::ListClients {} => {
             println!("listing clients");
         }
-        Operation::Describe_Client { uuid } => {
-            println!("showing status and relays of client");
+        Operation::DescribeClient { uuid } => {
+            println!("showing status and relays of client with uuid {}",uuid);
         }
-        Operation::Associate_Relay { uuid, relay } => {
+        Operation::AssociateRelay { uuid, relay } => {
             println!("add relay {} to client {}", relay, uuid);
         }
-        Operation::Clear_Relays { uuid } => {
+        Operation::ClearRelays { uuid } => {
             println!("removing all relays of client {}", uuid);
         }
         Operation::Serve { port } => {
