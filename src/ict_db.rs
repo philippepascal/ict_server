@@ -16,6 +16,12 @@ pub struct Device {
     pub authorized: u8,
 }
 
+#[derive(Debug)]
+pub struct Relay {
+    pub device_id: Uuid,
+    pub relay_id: u8,
+}
+
 impl Device {
     pub fn new(
         id_blob: &Vec<u8>,
@@ -44,7 +50,7 @@ impl Db {
         Ok(db)
     }
 
-    pub fn new_test_db()-> Result<Self, ICTError> {
+    pub fn new_test_db() -> Result<Self, ICTError> {
         let conn = Connection::open_in_memory()?;
         let db = Db { conn };
         db.init()?;
@@ -59,6 +65,12 @@ impl Db {
                 totp_secret BLOB NOT NULL,
                 authorized INTEGER NOT NULL
             )",
+            [],
+        )?;
+        self.conn.execute(
+            "CREATE TABLE IF NOT EXISTS relays (
+                device_id BLOB FOREIGN KEY,
+                relay_id INTEGER NOT NULL",
             [],
         )?;
         Ok(())
@@ -78,10 +90,18 @@ impl Db {
         Ok(())
     }
 
+    pub fn add_relay(&self, device_id: Uuid, relay_id: u8) -> Result<(), ICTError> {
+        self.conn.execute(
+            "INSERT INTO relays (device_id, relay_id) VALUES (?1, ?2)",
+            params![device_id.as_bytes(), relay_id],
+        )?;
+        Ok(())
+    }
+
     pub fn get_device(&self, id: Uuid) -> Result<Option<Device>, ICTError> {
-        let mut stmt = self
-            .conn
-            .prepare("SELECT id, wrapped_pk, totp_secret, authorized FROM registered_devices WHERE id = ?1")?;
+        let mut stmt = self.conn.prepare(
+            "SELECT id, wrapped_pk, totp_secret, authorized FROM registered_devices WHERE id = ?1",
+        )?;
 
         let mut rows = stmt.query(params![id.as_bytes()])?;
         if let Some(row) = rows.next()? {
@@ -100,13 +120,18 @@ impl Db {
     }
 
     pub fn set_authorization_on_device(&self, id: Uuid, auth: u8) -> Result<(), ICTError> {
-        self.conn.execute("UPDATE registered_devices SET authorized = ?2 WHERE id = ?1", params![id.as_bytes(),auth])?;
+        self.conn.execute(
+            "UPDATE registered_devices SET authorized = ?2 WHERE id = ?1",
+            params![id.as_bytes(), auth],
+        )?;
         Ok(())
     }
 
     pub fn delete_device(&self, id: Uuid) -> Result<()> {
-        self.conn
-            .execute("DELETE FROM registered_devices WHERE id = ?1", params![id.as_bytes()])?;
+        self.conn.execute(
+            "DELETE FROM registered_devices WHERE id = ?1",
+            params![id.as_bytes()],
+        )?;
         Ok(())
     }
     pub fn count_devices(&self) -> Result<u32> {
@@ -123,7 +148,12 @@ impl Db {
             .prepare("SELECT id, wrapped_pk, totp_secret, authorized FROM registered_devices")?;
 
         let device_iter = stmt.query_map([], |row| {
-            Ok(Device::new(&row.get(0)?, &row.get(1)?, &row.get(2)?, row.get(3)?))
+            Ok(Device::new(
+                &row.get(0)?,
+                &row.get(1)?,
+                &row.get(2)?,
+                row.get(3)?,
+            ))
         })?;
 
         for device in device_iter {
