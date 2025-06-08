@@ -3,7 +3,7 @@ mod ict_config;
 
 use ict_config::load_config;
 use ict_server::ict_db::Db;
-use ict_server::ict_operations::{ register};
+use ict_server::ict_operations::{ authorize, delete_device, operate, register, unauthorize};
 
 
 use crate::ict_args::Operation;
@@ -31,15 +31,31 @@ fn main() {
         }
         Operation::Authorize { uuid } => {
             println!("Authorizing a registered client with uuid {}",uuid);
+            match authorize(db, uuid) {
+                Ok(_) => {println!("Authorization successfull");}
+                Err(e) =>{println!("Authoriztion failed {}",e);}
+            }
         }
         Operation::Unauthorize { uuid } => {
             println!("Unauthorizing a registered client (can be re-authorized) with uuid {}",uuid);
+            match unauthorize(db, uuid) {
+                Ok(_) => {println!("Un-authorization successfull");}
+                Err(e) =>{println!("Un-authoriztion failed {}",e);}
+            }
         }
         Operation::Delete { uuid } => {
             println!("Deleting a registration (can not be undone) with uuid {}",uuid);
+            match delete_device(db, uuid) {
+                Ok(_) => {println!("delete successfull");}
+                Err(e) =>{println!("delete failed {}",e);}
+            }
         }
         Operation::Operate { uuid, message } => {
             println!("validate the message passed by client, and operate associated relays with uuid {} and message {}",uuid,message);
+            match operate(db, uuid, &message) {
+                Ok(_) => {println!("operate successfull");}
+                Err(e) =>{println!("operate failed {}",e);}
+            }
         }
         Operation::ListClients {} => {
             println!("listing clients");

@@ -18,11 +18,12 @@ fn test_db() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         wrapped_pk: private_key,
         totp_secret: Secret::generate_secret(),
+        authorized: 0,
     };
 
     db.add_device(&device).unwrap();
     db.print_all_devices().unwrap();
-    let loaded = db.get_device(device.id.as_bytes().to_vec()).unwrap();
+    let loaded = db.get_device(device.id).unwrap();
     // println!("Loaded device: {:?}", loaded.unwrap());
     assert!(loaded.is_some());
     let fetched_device = loaded.unwrap();

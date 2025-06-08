@@ -13,6 +13,7 @@ pub struct Device {
     pub id: Uuid,
     pub wrapped_pk: RsaPrivateKey,
     pub totp_secret: Secret,
+    pub authorized: u8,
 }
 
 impl Device {
@@ -20,11 +21,13 @@ impl Device {
         id_blob: &Vec<u8>,
         wrapped_pk: &Vec<u8>,
         secret_str: &Vec<u8>,
+        authorized: u8,
     ) -> Result<Option<Device>, ICTError> {
         Ok(Some(Device {
             id: Uuid::from_slice(&id_blob)?,
             wrapped_pk: RsaPrivateKey::from_pkcs8_der(&wrapped_pk)?,
             totp_secret: Secret::Raw(secret_str.clone()),
+            authorized: authorized,
         }))
     }
 }
@@ -53,7 +56,8 @@ impl Db {
             "CREATE TABLE IF NOT EXISTS registered_devices (
                 id BLOB PRIMARY KEY,
                 wrapped_pk BLOB NOT NULL,
-                totp_secret BLOB NOT NULL
+                totp_secret BLOB NOT NULL,
+                authorized INTEGER NOT NULL
             )",
             [],
         )?;
@@ -62,25 +66,26 @@ impl Db {
 
     pub fn add_device(&self, device: &Device) -> Result<(), ICTError> {
         self.conn.execute(
-            "INSERT INTO registered_devices (id, wrapped_pk, totp_secret)
-             VALUES (?1, ?2, ?3)",
+            "INSERT INTO registered_devices (id, wrapped_pk, totp_secret, authorized)
+             VALUES (?1, ?2, ?3, ?4)",
             params![
                 device.id.as_bytes(),
                 device.wrapped_pk.to_pkcs8_der()?.as_bytes().to_vec(),
-                device.totp_secret.to_bytes()?
+                device.totp_secret.to_bytes()?,
+                device.authorized,
             ],
         )?;
         Ok(())
     }
 
-    pub fn get_device(&self, id: Vec<u8>) -> Result<Option<Device>, ICTError> {
+    pub fn get_device(&self, id: Uuid) -> Result<Option<Device>, ICTError> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id, wrapped_pk, totp_secret FROM registered_devices WHERE id = ?1")?;
+            .prepare("SELECT id, wrapped_pk, totp_secret, authorized FROM registered_devices WHERE id = ?1")?;
 
-        let mut rows = stmt.query(params![id])?;
+        let mut rows = stmt.query(params![id.as_bytes()])?;
         if let Some(row) = rows.next()? {
-            Device::new(&row.get(0)?, &row.get(1)?, &row.get(2)?)
+            Device::new(&row.get(0)?, &row.get(1)?, &row.get(2)?, row.get(3)?)
         } else {
             Ok(None)
         }
@@ -88,15 +93,20 @@ impl Db {
 
     pub fn update_device(&self, device: &Device) -> Result<(), ICTError> {
         self.conn.execute(
-            "UPDATE registered_devices SET wrapped_pk = ?2, totp_secret = ?3 WHERE id = ?1",
-            params![device.id.as_bytes(), device.wrapped_pk.to_pkcs8_der()?.as_bytes().to_vec(), device.totp_secret.to_bytes()?],
+            "UPDATE registered_devices SET wrapped_pk = ?2, totp_secret = ?3, authorized = ?4 WHERE id = ?1",
+            params![device.id.as_bytes(), device.wrapped_pk.to_pkcs8_der()?.as_bytes().to_vec(), device.totp_secret.to_bytes()?, device.authorized],
         )?;
         Ok(())
     }
 
-    pub fn delete_device(&self, id: &str) -> Result<()> {
+    pub fn set_authorization_on_device(&self, id: Uuid, auth: u8) -> Result<(), ICTError> {
+        self.conn.execute("UPDATE registered_devices SET authorized = ?2 WHERE id = ?1", params![id.as_bytes(),auth])?;
+        Ok(())
+    }
+
+    pub fn delete_device(&self, id: Uuid) -> Result<()> {
         self.conn
-            .execute("DELETE FROM registered_devices WHERE id = ?1", params![id])?;
+            .execute("DELETE FROM registered_devices WHERE id = ?1", params![id.as_bytes()])?;
         Ok(())
     }
     pub fn count_devices(&self) -> Result<u32> {
@@ -110,10 +120,10 @@ impl Db {
     pub fn print_all_devices(&self) -> Result<(), ICTError> {
         let mut stmt = self
             .conn
-            .prepare("SELECT id, wrapped_pk, totp_secret FROM registered_devices")?;
+            .prepare("SELECT id, wrapped_pk, totp_secret, authorized FROM registered_devices")?;
 
         let device_iter = stmt.query_map([], |row| {
-            Ok(Device::new(&row.get(0)?, &row.get(1)?, &row.get(2)?))
+            Ok(Device::new(&row.get(0)?, &row.get(1)?, &row.get(2)?, row.get(3)?))
         })?;
 
         for device in device_iter {

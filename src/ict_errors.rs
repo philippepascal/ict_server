@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, time::SystemTimeError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -20,6 +20,12 @@ pub enum ICTError {
 
     #[error("Secret error")]
     Secret(#[from] totp_rs::SecretParseError),
+
+    #[error("TOTP error")]
+    TOTP(#[from] totp_rs::TotpUrlError),
+
+    #[error("System Time error")]
+    SystemTimeError(#[from] SystemTimeError),
 
     #[error("Custom error: {0}")]
     Custom(String),
