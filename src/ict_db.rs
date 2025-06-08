@@ -69,8 +69,9 @@ impl Db {
         )?;
         self.conn.execute(
             "CREATE TABLE IF NOT EXISTS relays (
-                device_id BLOB FOREIGN KEY,
-                relay_id INTEGER NOT NULL",
+                device_id BLOB NOT NULL,
+                relay_id INTEGER NOT NULL,
+                FOREIGN KEY(device_id) REFERENCES registered_devices(id))",
             [],
         )?;
         Ok(())
@@ -111,6 +112,14 @@ impl Db {
         }
     }
 
+    pub fn get_relays(&self,device_id: Uuid) -> Result<Vec<u8>,ICTError> {
+        let mut stmt = self.conn.prepare("SELECT relay_id FROM relays WHERE device_id = ?1")?;
+        let rows = stmt.query_map(params![device_id.as_bytes()], |row| {
+            row.get(0)
+        })?;
+        Ok(rows.collect::<Result<Vec<u8>,_>>()?)
+    }
+
     pub fn update_device(&self, device: &Device) -> Result<(), ICTError> {
         self.conn.execute(
             "UPDATE registered_devices SET wrapped_pk = ?2, totp_secret = ?3, authorized = ?4 WHERE id = ?1",
@@ -134,6 +143,12 @@ impl Db {
         )?;
         Ok(())
     }
+
+    pub fn remove_relays(&self, device_id:Uuid) -> Result<()> {
+        self.conn.execute("DELETE FROM relays WHERE device_id = ?1", params![device_id.as_bytes()])?;
+        Ok(())
+    }
+
     pub fn count_devices(&self) -> Result<u32> {
         let mut stmt = self
             .conn

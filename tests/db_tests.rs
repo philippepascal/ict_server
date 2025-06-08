@@ -1,4 +1,7 @@
-use ict_server::{ict_db::{Db, Device}, ict_errors::ICTError};
+use ict_server::{
+    ict_db::{Db, Device},
+    ict_errors::ICTError,
+};
 use rand::rngs::OsRng;
 use rsa::{pkcs1v15::Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use std::thread;
@@ -7,7 +10,7 @@ use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
 
 #[test]
-fn test_db() -> Result<(), ICTError> {
+fn test_device() -> Result<(), ICTError> {
     let db = Db::new_test_db()?;
 
     let mut rng = OsRng;
@@ -64,5 +67,41 @@ fn test_db() -> Result<(), ICTError> {
     thread::sleep(Duration::from_secs(60));
     assert!(!totp2.check_current(&decrypted_token).unwrap());
 
+    Ok(())
+}
+
+#[test]
+fn test_relays() -> Result<(), ICTError> {
+    let db = Db::new_test_db()?;
+
+    let mut rng = OsRng;
+    let private_key = RsaPrivateKey::new(&mut rng, 2048).expect("failed to generate a key");
+    let _public_key = RsaPublicKey::from(&private_key);
+
+    let device = Device {
+        id: Uuid::new_v4(),
+        wrapped_pk: private_key,
+        totp_secret: Secret::generate_secret(),
+        authorized: 0,
+    };
+
+    db.add_device(&device).unwrap();
+    db.print_all_devices().unwrap();
+
+    assert!(db.get_relays(device.id)?.is_empty());
+    db.add_relay(device.id, 1)?;
+    assert_eq!(db.get_relays(device.id)?.len(),1);
+    for i in db.get_relays(device.id)? {
+        println!("Device {} has relay {}",device.id,i);
+        assert_eq!(i,1);
+    }
+    db.add_relay(device.id, 4)?;
+    assert_eq!(db.get_relays(device.id)?.len(),2);
+    for i in db.get_relays(device.id)? {
+        println!("Device {} has relay {}",device.id,i);
+    }
+    assert_eq!(db.get_relays(device.id)?[1],4);
+    db.remove_relays(device.id)?;
+    assert!(db.get_relays(device.id)?.is_empty());
     Ok(())
 }
