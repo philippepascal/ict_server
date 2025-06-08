@@ -76,6 +76,10 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str) -> Result<bool, ICTErr
 
     if totp.check_current(&decrypted_token)? {
         // here perform the relay logic (close the circuit for limit time)
+        let relays = db.get_relays(device.id)?;
+        relays.iter().for_each(|relay| {
+            println!("operating relay {}",relay);
+        });
         println!("Operate was successful! Relays operated");
         Ok(true)
     } else {

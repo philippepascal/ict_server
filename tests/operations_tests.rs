@@ -2,7 +2,7 @@ use base64::{engine::general_purpose, Engine as _};
 use ict_server::{
     ict_db::Db,
     ict_errors::ICTError,
-    ict_operations::{authorize, operate, register},
+    ict_operations::{associate_relay, authorize, operate, register},
 };
 use rand::rngs::OsRng;
 use rsa::{
@@ -55,6 +55,10 @@ fn test_happy_path() -> Result<(), ICTError> {
             println!("expected err {}", e);
         }
     }
+
+    //5 add relays
+    associate_relay(&db, &id.to_string(), &2)?;
+    associate_relay(&db, &id.to_string(), &5)?;
 
     //6 authorize device
     authorize(&db, &id.to_string()).expect("failed to authorize");
