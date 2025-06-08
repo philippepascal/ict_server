@@ -1,4 +1,4 @@
-use ict_server::ict_db::{Db, Device};
+use ict_server::{ict_db::{Db, Device}, ict_errors::ICTError};
 use rand::rngs::OsRng;
 use rsa::{pkcs1v15::Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
 use std::thread;
@@ -7,7 +7,7 @@ use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
 
 #[test]
-fn test_db() -> Result<(), Box<dyn std::error::Error>> {
+fn test_db() -> Result<(), ICTError> {
     let db = Db::new_test_db()?;
 
     let mut rng = OsRng;
