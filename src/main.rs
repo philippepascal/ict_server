@@ -3,7 +3,7 @@ mod ict_config;
 
 use ict_config::load_config;
 use ict_server::ict_db::Db;
-use ict_server::ict_operations::{authorize, delete_device, operate, register, unauthorize};
+use ict_server::ict_operations::{associate_relay, authorize, clear_relays, delete_device, describe_client, list_clients, operate, register, unauthorize};
 
 use crate::ict_args::Operation;
 
@@ -83,15 +83,19 @@ fn main() {
         }
         Operation::ListClients {} => {
             println!("listing clients");
+            let _ = list_clients(&db);
         }
         Operation::DescribeClient { uuid } => {
             println!("showing status and relays of client with uuid {}", uuid);
+            let _ = describe_client(&db, uuid);
         }
         Operation::AssociateRelay { uuid, relay } => {
             println!("add relay {} to client {}", relay, uuid);
+            let _ = associate_relay(&db, uuid, relay);
         }
         Operation::ClearRelays { uuid } => {
             println!("removing all relays of client {}", uuid);
+            let _ = clear_relays(&db, uuid);
         }
         Operation::Serve { port } => {
             println!("Starting server on port {}", port);

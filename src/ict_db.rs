@@ -28,13 +28,13 @@ impl Device {
         wrapped_pk: &Vec<u8>,
         secret: &Vec<u8>,
         authorized: u8,
-    ) -> Result<Option<Device>, ICTError> {
-        Ok(Some(Device {
+    ) -> Result<Device, ICTError> {
+        Ok(Device {
             id: Uuid::from_slice(&id_blob)?,
             wrapped_pk: RsaPrivateKey::from_pkcs8_der(&wrapped_pk)?,
             totp_secret: Secret::Raw(secret.clone()),
             authorized: authorized,
-        }))
+        })
     }
 }
 
@@ -106,18 +106,35 @@ impl Db {
 
         let mut rows = stmt.query(params![id.as_bytes()])?;
         if let Some(row) = rows.next()? {
-            Device::new(&row.get(0)?, &row.get(1)?, &row.get(2)?, row.get(3)?)
+            Device::new(&row.get(0)?, &row.get(1)?, &row.get(2)?, row.get(3)?).map(Some)
         } else {
             Ok(None)
         }
     }
 
-    pub fn get_relays(&self,device_id: Uuid) -> Result<Vec<u8>,ICTError> {
-        let mut stmt = self.conn.prepare("SELECT relay_id FROM relays WHERE device_id = ?1")?;
-        let rows = stmt.query_map(params![device_id.as_bytes()], |row| {
-            row.get(0)
+    pub fn get_devices(&self) -> Result<Vec<Device>, ICTError> {
+        let mut stmt = self.conn.prepare("SELECT * FROM registered_devices")?;
+        let rows = stmt.query_map([], |row| {
+            Device::new(&row.get(0)?, &row.get(1)?, &row.get(2)?, row.get(3)?)
+                .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))
         })?;
-        Ok(rows.collect::<Result<Vec<u8>,_>>()?)
+
+        let devices = rows
+            .filter_map(|res| match res {
+                Ok(dev) => Some(Ok(dev)),
+                Err(e) => Some(Err(e.into())),
+            })
+            .collect::<Result<Vec<Device>, ICTError>>()?;
+
+        Ok(devices)
+    }
+
+    pub fn get_relays(&self, device_id: Uuid) -> Result<Vec<u8>, ICTError> {
+        let mut stmt = self
+            .conn
+            .prepare("SELECT relay_id FROM relays WHERE device_id = ?1")?;
+        let rows = stmt.query_map(params![device_id.as_bytes()], |row| row.get(0))?;
+        Ok(rows.collect::<Result<Vec<u8>, _>>()?)
     }
 
     pub fn update_device(&self, device: &Device) -> Result<(), ICTError> {
@@ -144,8 +161,11 @@ impl Db {
         Ok(())
     }
 
-    pub fn remove_relays(&self, device_id:Uuid) -> Result<()> {
-        self.conn.execute("DELETE FROM relays WHERE device_id = ?1", params![device_id.as_bytes()])?;
+    pub fn remove_relays(&self, device_id: Uuid) -> Result<()> {
+        self.conn.execute(
+            "DELETE FROM relays WHERE device_id = ?1",
+            params![device_id.as_bytes()],
+        )?;
         Ok(())
     }
 

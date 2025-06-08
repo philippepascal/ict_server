@@ -59,7 +59,7 @@ pub enum Operation {
         #[arg(short, long, value_name = "UUID of client")]
         uuid: String,
         #[arg(short, long, value_name = "id of relay")]
-        relay: u32,
+        relay: u8,
     },
     #[command(about = "Removes all relay of a client")]
     ClearRelays {

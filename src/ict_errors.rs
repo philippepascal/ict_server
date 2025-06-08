@@ -1,4 +1,4 @@
-use std::{io, time::SystemTimeError};
+use std::{io, num::ParseIntError, time::SystemTimeError};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
@@ -29,6 +29,9 @@ pub enum ICTError {
 
     #[error("Base64 decode error")]
     DecodeError(#[from] base64::DecodeError),
+
+    #[error("Parse Int error")]
+    ParseIntError(#[from] ParseIntError),
 
     #[error("Custom error: {0}")]
     Custom(String),

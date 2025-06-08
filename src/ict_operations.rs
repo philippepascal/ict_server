@@ -82,3 +82,37 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str) -> Result<bool, ICTErr
         Err(ICTError::Custom("TOTP token is not valid".to_string()))
     }
 }
+
+pub fn list_clients(db: &Db) -> Result<(),ICTError> {
+    let devices = db.get_devices()?;
+    for d in devices {
+        println!("Client {:?}",d);
+        let relays = db.get_relays(d.id)?;
+        for r in relays {
+            println!("   has relay {}",r);
+        }
+    }
+    Ok(())
+}
+
+pub fn describe_client(db: &Db, uuid_as_str: &str) -> Result<(),ICTError>{
+    let uuid = Uuid::parse_str(uuid_as_str)?;
+    let device = db.get_device(uuid)?;
+    println!("Client {:?}",device);
+    for relay in db.get_relays(uuid)? {
+        println!("    has relay {}",relay);
+    }
+    Ok(())
+}
+
+pub fn associate_relay(db: &Db, uuid_as_str: &str, relay: &u8) -> Result<(),ICTError>{
+    let uuid = Uuid::parse_str(uuid_as_str)?;
+    db.add_relay(uuid, *relay)?;
+    Ok(())
+}
+
+pub fn clear_relays(db: &Db, uuid_as_str: &str) -> Result<(),ICTError> {
+    let uuid = Uuid::parse_str(uuid_as_str)?;
+    db.remove_relays(uuid)?;
+    Ok(())
+}
