@@ -441,6 +441,7 @@ dependencies = [
 name = "ict_server"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "clap",
  "config",
  "rand 0.8.5",

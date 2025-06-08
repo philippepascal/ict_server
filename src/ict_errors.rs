@@ -27,6 +27,9 @@ pub enum ICTError {
     #[error("System Time error")]
     SystemTimeError(#[from] SystemTimeError),
 
+    #[error("Base64 decode error")]
+    DecodeError(#[from] base64::DecodeError),
+
     #[error("Custom error: {0}")]
     Custom(String),
 }
