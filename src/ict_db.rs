@@ -20,13 +20,13 @@ impl Device {
     pub fn new(
         id_blob: &Vec<u8>,
         wrapped_pk: &Vec<u8>,
-        secret_str: &Vec<u8>,
+        secret: &Vec<u8>,
         authorized: u8,
     ) -> Result<Option<Device>, ICTError> {
         Ok(Some(Device {
             id: Uuid::from_slice(&id_blob)?,
             wrapped_pk: RsaPrivateKey::from_pkcs8_der(&wrapped_pk)?,
-            totp_secret: Secret::Raw(secret_str.clone()),
+            totp_secret: Secret::Raw(secret.clone()),
             authorized: authorized,
         }))
     }

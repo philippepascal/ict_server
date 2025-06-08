@@ -20,7 +20,7 @@ pub fn register(db: &Db, uuid_as_str: &str, pem_public_key: &str) -> Result<Stri
     };
     db.add_device(&device)?;
 
-    Ok(secret.to_string())
+    Ok(device.totp_secret.to_encoded().to_string())
 }
 
 pub fn authorize(db: &Db, uuid_as_str: &str) -> Result<(), ICTError> {
@@ -64,7 +64,8 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str) -> Result<bool, ICTErr
         .decrypt(Pkcs1v15Encrypt, encrypted_bytes.as_slice())?;
     let decrypted_token = String::from_utf8(decrypted_bytes).map_err(|_| rsa::Error::Decryption)?;
     println!("TOTP token {}", decrypted_token);
-    println!("Secret {}", device.totp_secret);
+    println!("Secret (not encoded) {}", device.totp_secret);
+    println!("Secret (encoded) {}", device.totp_secret.to_encoded().to_string());
     let totp = TOTP::new(
         totp_rs::Algorithm::SHA256, // or SHA256, SHA512
         6,                          // number of digits

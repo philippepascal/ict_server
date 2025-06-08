@@ -10,7 +10,7 @@ use rsa::{
     pkcs8::{EncodePrivateKey, LineEnding},
     RsaPrivateKey, RsaPublicKey,
 };
-use totp_rs::TOTP;
+use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
 
 #[test]
@@ -29,7 +29,9 @@ fn test_happy_path() -> Result<(), ICTError> {
     println!("pem: {:?}", pem_public_key);
 
     //2 register client and collect secret
-    let secret = register(&db, &id.to_string(), &pem_public_key).expect("failed to register");
+    let secret_string = register(&db, &id.to_string(), &pem_public_key).expect("failed to register");
+    println!("secret generated (encoded) {}", &secret_string);
+    let secret = Secret::Encoded(secret_string);
 
     //4 generate totp using device and secret, and encrypt it, mimicing client
     let totp = TOTP::new(
@@ -37,11 +39,10 @@ fn test_happy_path() -> Result<(), ICTError> {
         6,                          // number of digits
         1,                          // step (in 30-second blocks, 1 = 30s)
         30,                         // period (seconds)
-        secret.as_bytes().to_vec(),
+        secret.to_bytes().unwrap(),
     )?;
     let token = totp.generate_current()?;
     println!("TOTP token generated {}", token);
-    println!("secret generated {}", secret);
     let encrypted_token = public_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, token.as_bytes())?;
     let message = general_purpose::STANDARD.encode(&encrypted_token);
 
