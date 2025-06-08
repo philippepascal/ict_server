@@ -62,6 +62,10 @@ fn test_happy_path() -> Result<(), ICTError> {
     //optional if authorize is fast enough
 
     //8 validate totp, should succedd
+    assert!(totp
+        .check_current(&token)
+        .expect("totp internal check failed"));
+    //
     assert!(operate(&db, &id.to_string(), &message).expect("failed to operate"));
 
     Ok(())
