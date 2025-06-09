@@ -1,7 +1,7 @@
 ToDo:
 Done //// 1. Add relays table (uuid|relayId), and db functions for it
 Done //// 2. Implement last operations (related to relays)
-. Proper logging
+Done //// . Proper logging
 . Add RaspPI library to control GPIO and tie it up to relay operations
     add base functions open/close
    call these functions in operate
