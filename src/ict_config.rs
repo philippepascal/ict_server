@@ -4,12 +4,18 @@ use config::{Config, ConfigError, File};
 #[derive(Debug, Deserialize)]
 pub struct Settings {
     pub database: Database,
+    pub web: Web,
     pub logs: Logs,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Database {
     pub path: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Web {
+    pub tls_path: String,
 }
 
 #[derive(Debug, Deserialize)]

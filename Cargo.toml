@@ -19,3 +19,9 @@ thiserror = "2.0.12"
 base64 = "0.21"
 log = "0.4"
 env_logger = "0.10"
+
+#for the web server
+axum = "0.8"
+axum-server = { version = "0.7", features = ["tls-rustls"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.4"

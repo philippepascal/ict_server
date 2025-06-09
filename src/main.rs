@@ -1,16 +1,16 @@
 mod ict_args;
 mod ict_config;
 
-use std::str::FromStr;
-
-use crate::ict_args::Operation;
+use ict_args::Operation;
 use ict_config::load_config;
 use ict_server::ict_db::Db;
 use ict_server::ict_operations::{
     associate_relay, authorize, clear_relays, delete_device, describe_client, list_clients,
     operate, register, unauthorize,
 };
+use ict_server::ict_web::start_web_server;
 use log::{error, info, LevelFilter};
+use std::str::FromStr;
 
 fn main() {
     let args = ict_args::load_args();
@@ -110,6 +110,7 @@ fn main() {
         }
         Operation::Serve { port } => {
             info!("Starting server on port {}", port);
+            start_web_server(port, &settings.web.tls_path);
         }
     }
 }

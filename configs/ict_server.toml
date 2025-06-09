@@ -1,6 +1,8 @@
 [database]
 path = "db/ict_server.db" #assuming we are running from root of repo
 
+[web]
+tls_path = "tls/" #assuming we are running from root of repo
+
 [logs]
-path = "" #empty string for stderr
 level = "INFO"
