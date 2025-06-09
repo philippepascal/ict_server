@@ -15,6 +15,10 @@ use uuid::Uuid;
 
 #[test]
 fn test_happy_path() -> Result<(), ICTError> {
+    let _ = env_logger::Builder::from_default_env()
+        .format_timestamp_secs()
+        .is_test(true)
+        .try_init();
     let db = Db::new_test_db()?;
 
     //1 create a fake client
@@ -29,7 +33,8 @@ fn test_happy_path() -> Result<(), ICTError> {
     println!("pem: {:?}", pem_public_key);
 
     //2 register client and collect secret
-    let secret_string = register(&db, &id.to_string(), &pem_public_key).expect("failed to register");
+    let secret_string =
+        register(&db, &id.to_string(), &pem_public_key).expect("failed to register");
     println!("secret generated (encoded) {}", &secret_string);
     let secret = Secret::Encoded(secret_string);
 
@@ -70,7 +75,7 @@ fn test_happy_path() -> Result<(), ICTError> {
     assert!(totp
         .check_current(&token)
         .expect("totp internal check failed")); //internal check
-    //9. actual successful call to operate!!
+                                                //9. actual successful call to operate!!
     assert!(operate(&db, &id.to_string(), &message).expect("failed to operate"));
 
     Ok(())

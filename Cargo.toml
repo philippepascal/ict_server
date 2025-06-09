@@ -17,3 +17,5 @@ rsa = { version = "0.9" }
 rand = "0.8"
 thiserror = "2.0.12"
 base64 = "0.21"
+log = "0.4"
+env_logger = "0.10"
