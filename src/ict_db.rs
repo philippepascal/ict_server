@@ -39,22 +39,35 @@ impl Device {
 }
 
 pub struct Db {
+    path: String,
     conn: Connection,
 }
 
 impl Db {
     pub fn new(db_path: &str) -> Result<Self, ICTError> {
         let conn = Connection::open(db_path)?;
-        let db = Db { conn };
+        let db = Db { path: db_path.to_string(), conn };
         db.init()?;
         Ok(db)
     }
 
     pub fn new_test_db() -> Result<Self, ICTError> {
         let conn = Connection::open_in_memory()?;
-        let db = Db { conn };
+        let db = Db { path:"".to_string(), conn };
         db.init()?;
         Ok(db)
+    }
+
+    pub fn duplicate(&self) -> Result<Self,ICTError> {
+        let conn = if self.path.is_empty() {
+            Connection::open_in_memory()?
+        } else {
+            Connection::open(&self.path)?
+        };
+        Ok(Db {
+            path: self.path.clone(),
+            conn: conn,
+        })
     }
 
     fn init(&self) -> Result<(), ICTError> {
