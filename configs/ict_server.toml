@@ -1,6 +1,7 @@
 [database]
 path = "db/ict_server.db" #assuming we are running from root of repo
 
+#currently not used with rouille
 [web]
 tls_path = "tls/" #assuming we are running from root of repo
 

@@ -37,37 +37,32 @@ impl Device {
         })
     }
 }
-
 pub struct Db {
-    path: String,
+    pub path: Option<String>,
     conn: Connection,
 }
 
 impl Db {
+
+    pub fn newg(db_path: Option<String>) -> Result<Self, ICTError> {
+        match db_path {
+            Some(path) => Self::new(&path),
+            None => Self::new_test_db(),
+        }
+    }
+
     pub fn new(db_path: &str) -> Result<Self, ICTError> {
         let conn = Connection::open(db_path)?;
-        let db = Db { path: db_path.to_string(), conn };
+        let db = Db { path: Some(db_path.to_string()), conn };
         db.init()?;
         Ok(db)
     }
 
     pub fn new_test_db() -> Result<Self, ICTError> {
         let conn = Connection::open_in_memory()?;
-        let db = Db { path:"".to_string(), conn };
+        let db = Db { path: None, conn };
         db.init()?;
         Ok(db)
-    }
-
-    pub fn duplicate(&self) -> Result<Self,ICTError> {
-        let conn = if self.path.is_empty() {
-            Connection::open_in_memory()?
-        } else {
-            Connection::open(&self.path)?
-        };
-        Ok(Db {
-            path: self.path.clone(),
-            conn: conn,
-        })
     }
 
     fn init(&self) -> Result<(), ICTError> {

@@ -8,7 +8,7 @@ use ict_server::ict_operations::{
     associate_relay, authorize, clear_relays, delete_device, describe_client, list_clients,
     operate, register, unauthorize,
 };
-use ict_server::ict_web_axum::start_web_server;
+use ict_server::ict_web::start_web_server;
 use log::{error, info, LevelFilter};
 use std::str::FromStr;
 
@@ -110,7 +110,7 @@ fn main() {
         }
         Operation::Serve { port } => {
             info!("Starting server on port {}", port);
-            start_web_server(port, &db);
+            start_web_server(&port, &db);
         }
     }
 }
