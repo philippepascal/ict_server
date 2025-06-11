@@ -40,7 +40,10 @@ pub fn start_web_server(port: &u32, db: &Db) {
                 (POST) (/register) => {
                     let body: RegisterRequest = match rouille::input::json_input(request) {
                         Ok(data) => data,
-                        Err(_) => return Response::text("Invalid JSON").with_status_code(400),
+                        Err(e) => {
+                            error!("Could not parse the body {}",e);
+                            return Response::text("Invalid JSON").with_status_code(400)
+                        },
                     };
                     match register(&db2,&body.id,&body.pem_public_key) {
                             Ok(secret) => {
@@ -71,7 +74,7 @@ pub fn start_web_server(port: &u32, db: &Db) {
                             },
                          }
                 },
-                
+
                 (GET) (/stats) => {
                     Response::text("Server up and running").with_status_code(200)
                 },
