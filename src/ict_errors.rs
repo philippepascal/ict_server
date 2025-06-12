@@ -33,11 +33,14 @@ pub enum ICTError {
     #[error("Parse Int error")]
     ParseIntError(#[from] ParseIntError),
 
-    #[error("Parse Int error")]
+    #[error("PK error")]
     PKError(#[from] rsa::pkcs8::spki::Error),
 
-    #[error("Parse Int error")]
+    #[error("Signature error")]
     SignatureError(#[from] rsa::signature::Error),
+
+    #[error("String error")]
+    StringError(#[from] std::string::FromUtf8Error),
 
     #[error("Custom error: {0}")]
     Custom(String),

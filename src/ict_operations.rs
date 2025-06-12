@@ -1,3 +1,4 @@
+use base64::encode;
 use base64::{engine::general_purpose, Engine as _};
 use rsa::pkcs1v15::Signature;
 use rsa::pkcs8::DecodePublicKey;
@@ -34,9 +35,16 @@ pub fn register(db: &Db, uuid_as_str: &str, pem_public_key: &str) -> Result<Stri
     };
     db.add_device(&device)?;
 
-    let encrypted_secret = device.wrapped_pk.encrypt(&mut OsRng, Pkcs1v15Encrypt, &device.totp_secret.to_bytes()?)?;
+    // let encrypted_secret = device.wrapped_pk.encrypt(&mut OsRng, Pkcs1v15Encrypt, &device.totp_secret.to_bytes()?)?;
+
+    // let encrypted_secret = device.wrapped_pk.encrypt(&mut OsRng, Pkcs1v15Encrypt, &device.totp_secret.to_encoded().to_bytes()?)?;
+
+    println!("secret {}",&device.totp_secret.to_encoded().to_string());
+    let encrypted_secret = device.wrapped_pk.encrypt(&mut OsRng, Pkcs1v15Encrypt, &device.totp_secret.to_encoded().to_string().as_bytes())?;
 
     Ok(general_purpose::STANDARD.encode(&encrypted_secret))
+
+    // Ok(String::from_utf8(encrypted_secret)?)
 }
 
 pub fn authorize(db: &Db, uuid_as_str: &str) -> Result<(), ICTError> {

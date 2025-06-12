@@ -44,13 +44,16 @@ fn test_happy_path() -> Result<(), ICTError> {
 
     let secret = private_key.decrypt(Pkcs1v15Encrypt, &encrypted_secret).unwrap();
 
+    let s = Secret::Encoded(String::from_utf8(secret).unwrap());
+    println!("secret {:?}",s.clone());
+
     //4 generate totp using device and secret, and encrypt it, mimicing client
     let totp = TOTP::new(
         totp_rs::Algorithm::SHA256, // or SHA256, SHA512
         6,                          // number of digits
         1,                          // step (in 30-second blocks, 1 = 30s)
         30,                         // period (seconds)
-        secret,
+        s.to_raw()?.to_bytes()?,
     )?;
     let token = totp.generate_current()?;
     println!("TOTP token generated {}", token);

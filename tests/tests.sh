@@ -32,21 +32,59 @@ JSON_PAYLOAD=$(cat <<EOF
 EOF
 )
 
-echo $JSON_PAYLOAD
+echo "payload $JSON_PAYLOAD"
 
 # Step 6: POST to server
-curl -X POST "$SERVER_URL" \
+RES=$(curl -X POST "$SERVER_URL" \
      -H "Content-Type: application/json" \
      -d "$JSON_PAYLOAD" \
-     -v
+     -v)
 
 echo -e "\n✅ Registration complete."
+echo "res $RES"
 
-ENCODED_SECRET=$(echo "$JSON_PAYLOAD" | jq -r '.encrypted_secret')
+# $(echo "$JSON_PAYLOAD" | jq -r '.encrypted_secret')
 
-bytes=($(echo "$ENCODED_SECRET" | base64 -d | xxd -p -c1))
+ENCODED_SECRET=$(echo "$RES" | jq -r '.encrypted_secret')
 
-DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | base64 -d | \
-openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem")
+echo "encoded secret $ENCODED_SECRET"
+
+# ENCRYPTED_SECRET=($(echo "$ENCODED_SECRET" | base64 -d | xxd -p -c1))
+
+# ENCRYPTED_SECRET=$(echo "$ENCODED_SECRET" | base64 -d)
+
+# echo "encrypted secret $ENCRYPTED_SECRET"
+
+# DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | \
+# base64 -d | xxd -p -c1 | \
+# openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem" ) 
+
+# echo "decrypted secret $DECRYPTED_SECRET"
+
+# DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | \
+# base64 -d | xxd -p -c1 | \
+# openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem" | \
+# awk 'BEGIN{RS="\0"} NR>1{print; exit}')  # skip padding, print real message
+
+# echo "decrypted secret $DECRYPTED_SECRET"
+
+DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | \
+base64 -d | \
+openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem" ) 
+
+echo "decrypted secret $DECRYPTED_SECRET"
+
+# DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | \
+# base64 -d | \
+# openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem" | \
+# awk 'BEGIN{RS="\0"} NR>1{print; exit}')  # skip padding, print real message
+
+# echo "decrypted secret $DECRYPTED_SECRET"
+
+# B32=$(echo "$DECRYPTED_SECRET" | xxd -r -p | base32)
+
+# B32=$(echo "$DECRYPTED_SECRET" | base32 -d)
+
+# echo "$B32"
 
 oathtool --totp -b "$DECRYPTED_SECRET"
