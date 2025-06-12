@@ -4,7 +4,7 @@ use ict_server::{
 };
 use rand::rngs::OsRng;
 use rsa::{pkcs1v15::Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
-use std::thread;
+use std::{any::Any, thread};
 use std::time::Duration;
 use totp_rs::{Secret, TOTP};
 use uuid::Uuid;

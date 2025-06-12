@@ -1,6 +1,6 @@
 use rsa::{
-    pkcs8::{DecodePrivateKey, EncodePrivateKey},
-    RsaPrivateKey,
+    pkcs8::{DecodePublicKey, EncodePublicKey},
+    RsaPublicKey,
 };
 use rusqlite::{params, Connection, Result};
 use totp_rs::Secret;
@@ -11,7 +11,7 @@ use crate::ict_errors::ICTError;
 #[derive(Debug)]
 pub struct Device {
     pub id: Uuid,
-    pub wrapped_pk: RsaPrivateKey,
+    pub wrapped_pk: RsaPublicKey,
     pub totp_secret: Secret,
     pub authorized: u8,
 }
@@ -31,7 +31,7 @@ impl Device {
     ) -> Result<Device, ICTError> {
         Ok(Device {
             id: Uuid::from_slice(&id_blob)?,
-            wrapped_pk: RsaPrivateKey::from_pkcs8_der(&wrapped_pk)?,
+            wrapped_pk: RsaPublicKey::from_public_key_der(&wrapped_pk)?,
             totp_secret: Secret::Raw(secret.clone()),
             authorized: authorized,
         })
@@ -91,7 +91,7 @@ impl Db {
              VALUES (?1, ?2, ?3, ?4)",
             params![
                 device.id.as_bytes(),
-                device.wrapped_pk.to_pkcs8_der()?.as_bytes().to_vec(),
+                device.wrapped_pk.to_public_key_der()?.as_bytes().to_vec(),
                 device.totp_secret.to_bytes()?,
                 device.authorized,
             ],
@@ -148,7 +148,7 @@ impl Db {
     pub fn update_device(&self, device: &Device) -> Result<(), ICTError> {
         self.conn.execute(
             "UPDATE registered_devices SET wrapped_pk = ?2, totp_secret = ?3, authorized = ?4 WHERE id = ?1",
-            params![device.id.as_bytes(), device.wrapped_pk.to_pkcs8_der()?.as_bytes().to_vec(), device.totp_secret.to_bytes()?, device.authorized],
+            params![device.id.as_bytes(), device.wrapped_pk.to_public_key_der()?.as_bytes().to_vec(), device.totp_secret.to_bytes()?, device.authorized],
         )?;
         Ok(())
     }
