@@ -22,8 +22,8 @@ openssl pkey -in "../target/${KEY_NAME}_pkcs8.pem" -pubout -out "../target/${KEY
 UUID=$(uuidgen)
 
 # Step 5: Prepare the JSON body
-#PUBLIC_KEY_CONTENT=$(awk '{ printf "%s\\n", $0 }' "../target/${KEY_NAME}_pub.pem")
-PUBLIC_KEY_CONTENT=$(awk '{ printf "%s", $0 }' "../target/${KEY_NAME}_pub.pem")
+PUBLIC_KEY_CONTENT=$(awk '{ printf "%s\\n", $0 }' "../target/${KEY_NAME}_pub.pem")
+# PUBLIC_KEY_CONTENT=$(awk '{ printf "%s", $0 }' "../target/${KEY_NAME}_pub.pem")
 JSON_PAYLOAD=$(cat <<EOF
 {
   "id": "$UUID",
@@ -41,3 +41,12 @@ curl -X POST "$SERVER_URL" \
      -v
 
 echo -e "\n✅ Registration complete."
+
+ENCODED_SECRET=$(echo "$JSON_PAYLOAD" | jq -r '.encrypted_secret')
+
+bytes=($(echo "$ENCODED_SECRET" | base64 -d | xxd -p -c1))
+
+DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | base64 -d | \
+openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem")
+
+oathtool --totp -b "$DECRYPTED_SECRET"
