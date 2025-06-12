@@ -6,7 +6,7 @@ use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
 use log::{info};
 use rand::rngs::OsRng;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::signature::Verifier;
 use rsa::sha2::Sha256;
@@ -15,10 +15,10 @@ use crate::ict_db::Db;
 use crate::ict_db::Device;
 use crate::ict_errors::ICTError;
 
-#[derive(Deserialize)]
-struct OperationMessage {
-    token: String,
-    salt: String,
+#[derive(Deserialize,Serialize)]
+pub struct OperationMessage {
+    pub token: String,
+    pub _salt: String,
 }
 
 pub fn register(db: &Db, uuid_as_str: &str, pem_public_key: &str) -> Result<String, ICTError> {
@@ -78,7 +78,7 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
     let verifying_key = VerifyingKey::<Sha256>::new(device.wrapped_pk);
     let signature_bytes = general_purpose::STANDARD.decode(signature)
         .map_err(|_| ICTError::Custom("Failed to decode base64 signature".into()))?;
-    verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature_bytes.as_slice())?).unwrap(); 
+    verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature_bytes.as_slice())?).unwrap();
 
     // unpack json message {token,salt}
     let parsed: OperationMessage = serde_json::from_str(message)

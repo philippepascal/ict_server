@@ -3,13 +3,15 @@ use ict_server::{
     ict_db::Db,
     ict_errors::ICTError,
     ict_operations::{associate_relay, authorize, operate, register},
+    ict_operations::OperationMessage,
 };
 use rand::rngs::OsRng;
 use rsa::{
-    pkcs1v15::Pkcs1v15Encrypt,
-    pkcs8::{EncodePrivateKey, LineEnding},
+    pkcs8::{EncodePublicKey, LineEnding},
     RsaPrivateKey, RsaPublicKey,
 };
+use rsa::{pkcs1v15::SigningKey, signature::Signer};
+use sha2::Sha256;
 use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
 
@@ -27,7 +29,7 @@ fn test_happy_path() -> Result<(), ICTError> {
     let mut rng = OsRng;
     let private_key = RsaPrivateKey::new(&mut rng, 2048).expect("failed to generate a key");
     let public_key = RsaPublicKey::from(&private_key);
-    let pem_public_key = RsaPrivateKey::to_pkcs8_pem(&private_key, LineEnding::CR)
+    let pem_public_key = RsaPublicKey::to_public_key_pem(&public_key, LineEnding::CR)
         .expect("failed to format public key as string");
 
     println!("pem: {:?}", pem_public_key);
@@ -48,11 +50,23 @@ fn test_happy_path() -> Result<(), ICTError> {
     )?;
     let token = totp.generate_current()?;
     println!("TOTP token generated {}", token);
-    let encrypted_token = public_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, token.as_bytes())?;
-    let message = general_purpose::STANDARD.encode(&encrypted_token);
+
+    let op_message = OperationMessage {
+        token: token.clone(),
+        _salt: "asdf".to_string(),
+    };
+    let message = serde_json::to_string(&op_message).unwrap();
+
+    // Step 3: Sign the message
+    let signing_key = SigningKey::<Sha256>::new(private_key);
+    let signature = signing_key.sign(message.as_bytes());
+
+    // Step 4: Print base64-encoded signature
+    let signature_base64 = general_purpose::STANDARD.encode(signature.to_string());
+    println!("Signature (base64): {}", signature_base64);
 
     //5 operate relays, should fail
-    match operate(&db, &id.to_string(), &message) {
+    match operate(&db, &id.to_string(), &message, &signature_base64) {
         Ok(result) => {
             assert!(!result);
         }
@@ -76,7 +90,7 @@ fn test_happy_path() -> Result<(), ICTError> {
         .check_current(&token)
         .expect("totp internal check failed")); //internal check
                                                 //9. actual successful call to operate!!
-    assert!(operate(&db, &id.to_string(), &message).expect("failed to operate"));
+    assert!(operate(&db, &id.to_string(), &message, &signature_base64).expect("failed to operate"));
 
     Ok(())
 }

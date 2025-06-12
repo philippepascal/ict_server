@@ -72,8 +72,8 @@ fn main() {
                 }
             }
         }
-        Operation::Operate { uuid, message } => {
-            match operate(&db, uuid, &message) {
+        Operation::Operate { uuid, message ,signature} => {
+            match operate(&db, uuid, &message, signature) {
                 Ok(_) => {
                     info!("Successful operate relays of client uuid {}",uuid);
                 }

@@ -17,12 +17,13 @@ struct RegisterRequest {
 #[derive(Deserialize)]
 struct OperateRequest {
     id: String,
-    encrypted_totp: String,
+    totp_message: String,
+    signature: String,
 }
 
 #[derive(Serialize)]
 struct SecretResponse {
-    secret: String,
+    encrypted_secret: String,
 }
 
 pub fn start_web_server(port: &u32, db: &Db) {
@@ -46,9 +47,9 @@ pub fn start_web_server(port: &u32, db: &Db) {
                         },
                     };
                     match register(&db2,&body.id,&body.pem_public_key) {
-                            Ok(secret) => {
+                            Ok(encrypted_secret) => {
                                 info!("Successful register during web request with uuid {}",&body.id);
-                                Response::json(&SecretResponse { secret })
+                                Response::json(&SecretResponse { encrypted_secret })
                             },
                             Err(e) => {
                                 error!("Failed register during web request uuid {} with {}",&body.id,e);
@@ -63,7 +64,7 @@ pub fn start_web_server(port: &u32, db: &Db) {
                         Err(_) => return Response::text("Invalid JSON").with_status_code(400),
                     };
 
-                    match operate(&db2,&body.id,&body.encrypted_totp) {
+                    match operate(&db2,&body.id,&body.totp_message,&body.signature) {
                             Ok(_) => {
                                 info!("Successful operate during web request with uuid {}",&body.id);
                                 Response::text("Operate successful")

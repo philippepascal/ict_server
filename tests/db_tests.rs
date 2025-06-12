@@ -1,13 +1,18 @@
 use ict_server::{
     ict_db::{Db, Device},
     ict_errors::ICTError,
+    ict_operations::OperationMessage,
 };
 use rand::rngs::OsRng;
-use rsa::{pkcs1v15::Pkcs1v15Encrypt, RsaPrivateKey, RsaPublicKey};
-use std::{any::Any, thread};
+use rsa::{ RsaPrivateKey, RsaPublicKey};
+use std::{thread};
 use std::time::Duration;
 use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
+use rsa::{pkcs1v15::SigningKey, signature::Signer,pkcs1v15::VerifyingKey,pkcs1v15::Signature,signature::Verifier};
+use sha2::Sha256;
+use base64::{engine::general_purpose, Engine as _};
+
 
 #[test]
 fn test_device() -> Result<(), ICTError> {
@@ -23,7 +28,7 @@ fn test_device() -> Result<(), ICTError> {
 
     let device = Device {
         id: Uuid::new_v4(),
-        wrapped_pk: private_key,
+        wrapped_pk: public_key,
         totp_secret: Secret::generate_secret(),
         authorized: 0,
     };
@@ -48,13 +53,32 @@ fn test_device() -> Result<(), ICTError> {
 
     let token = totp.generate_current()?;
     println!("Your TOTP token is: {}", token);
-    let encrypted_token = public_key.encrypt(&mut OsRng, Pkcs1v15Encrypt, token.as_bytes())?;
-    println!("Your encrypted token is : {:?}", encrypted_token);
 
-    let decrypted_bytes = fetched_device
-        .wrapped_pk
-        .decrypt(Pkcs1v15Encrypt, encrypted_token.as_slice())?;
-    let decrypted_token = String::from_utf8(decrypted_bytes).map_err(|_| rsa::Error::Decryption)?;
+    let op_message = OperationMessage {
+        token: token.clone(),
+        _salt: "asdf".to_string(),
+    };
+    let message = serde_json::to_string(&op_message).unwrap();
+
+    // Step 3: Sign the message
+    let signing_key = SigningKey::<Sha256>::new(private_key);
+    let signature = signing_key.sign(message.as_bytes());
+
+    // Step 4: Print base64-encoded signature
+    let signature_base64 = general_purpose::STANDARD.encode(signature.to_string());
+    println!("Signature (base64): {}", signature_base64);
+
+
+    let verifying_key = VerifyingKey::<Sha256>::new(device.wrapped_pk);
+    let signature_bytes = general_purpose::STANDARD.decode(signature_base64)
+        .map_err(|_| ICTError::Custom("Failed to decode base64 signature".into()))?;
+    verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature_bytes.as_slice())?).unwrap();
+
+    // unpack json message {token,salt}
+    let parsed: OperationMessage = serde_json::from_str(&message)
+        .map_err(|_| ICTError::Custom("Failed to parse JSON message".into()))?;
+    let decrypted_token = parsed.token;
+
     println!("Your decrypted token is : {}", decrypted_token);
 
     assert_eq!(decrypted_token, token);
@@ -84,11 +108,11 @@ fn test_relays() -> Result<(), ICTError> {
 
     let mut rng = OsRng;
     let private_key = RsaPrivateKey::new(&mut rng, 2048).expect("failed to generate a key");
-    let _public_key = RsaPublicKey::from(&private_key);
+    let public_key = RsaPublicKey::from(&private_key);
 
     let device = Device {
         id: Uuid::new_v4(),
-        wrapped_pk: private_key,
+        wrapped_pk: public_key,
         totp_secret: Secret::generate_secret(),
         authorized: 0,
     };
