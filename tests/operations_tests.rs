@@ -67,10 +67,10 @@ fn test_happy_path() -> Result<(), ICTError> {
     let signature = signing_key.sign(message.as_bytes());
 
     let verifying_key = VerifyingKey::<Sha256>::new(public_key);
-    verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature)?);
+    let _res = verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature.clone()).unwrap());
 
     // Step 4: Print base64-encoded signature
-    let signature_base64 = general_purpose::STANDARD.encode(signature.to_string());
+    let signature_base64 = general_purpose::STANDARD.encode(&signature.to_bytes());
     println!("Signature (base64): {}", signature_base64);
 
     //5 operate relays, should fail
@@ -97,7 +97,7 @@ fn test_happy_path() -> Result<(), ICTError> {
     assert!(totp
         .check_current(&token)
         .expect("totp internal check failed")); //internal check
-                                                //9. actual successful call to operate!!
+    //9. actual successful call to operate!!
     assert!(operate(&db, &id.to_string(), &message, &signature_base64).expect("failed to operate"));
 
     Ok(())
