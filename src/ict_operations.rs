@@ -78,7 +78,10 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
     let verifying_key = VerifyingKey::<Sha256>::new(device.wrapped_pk);
     let signature_bytes = general_purpose::STANDARD.decode(signature)
         .map_err(|_| ICTError::Custom("Failed to decode base64 signature".into()))?;
-    verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature_bytes.as_slice())?).unwrap();
+    match verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature_bytes.as_slice())?) {
+        Ok(()) => (),
+        Err(_e) => return Result::Err(ICTError::Custom("Message signature verification failed".to_string())),
+    }
 
     // unpack json message {token,salt}
     let parsed: OperationMessage = serde_json::from_str(message)

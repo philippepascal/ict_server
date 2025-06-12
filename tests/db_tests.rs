@@ -9,7 +9,7 @@ use std::{thread};
 use std::time::Duration;
 use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
-use rsa::{pkcs1v15::SigningKey, signature::Signer,pkcs1v15::VerifyingKey,pkcs1v15::Signature,signature::Verifier};
+use rsa::{pkcs1v15::SigningKey, signature::Signer,pkcs1v15::VerifyingKey,pkcs1v15::Signature,signature::Verifier,signature::SignatureEncoding};
 use sha2::Sha256;
 use base64::{engine::general_purpose, Engine as _};
 
@@ -65,14 +65,17 @@ fn test_device() -> Result<(), ICTError> {
     let signature = signing_key.sign(message.as_bytes());
 
     // Step 4: Print base64-encoded signature
-    let signature_base64 = general_purpose::STANDARD.encode(signature.to_string());
+    let signature_base64 = general_purpose::STANDARD.encode(signature.to_bytes());
     println!("Signature (base64): {}", signature_base64);
 
 
     let verifying_key = VerifyingKey::<Sha256>::new(device.wrapped_pk);
     let signature_bytes = general_purpose::STANDARD.decode(signature_base64)
         .map_err(|_| ICTError::Custom("Failed to decode base64 signature".into()))?;
-    verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature_bytes.as_slice())?).unwrap();
+
+    let received_signature = &Signature::try_from(signature_bytes.as_slice()).unwrap();
+    assert_eq!(signature,received_signature.clone());
+    verifying_key.verify(&message.as_bytes(),received_signature ).unwrap();
 
     // unpack json message {token,salt}
     let parsed: OperationMessage = serde_json::from_str(&message)

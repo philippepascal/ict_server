@@ -7,13 +7,14 @@ use ict_server::{
 };
 use rand::rngs::OsRng;
 use rsa::{
-    pkcs8::{EncodePublicKey, LineEnding},
-    RsaPrivateKey, RsaPublicKey,
+    pkcs1v15::{Pkcs1v15Encrypt, VerifyingKey}, pkcs8::{EncodePublicKey, LineEnding}, RsaPrivateKey, RsaPublicKey
 };
-use rsa::{pkcs1v15::SigningKey, signature::Signer};
+use rsa::{pkcs1v15::SigningKey, signature::Signer, signature::SignatureEncoding};
 use sha2::Sha256;
 use totp_rs::{Secret, TOTP};
 use uuid::Uuid;
+use rsa::signature::Verifier;
+use rsa::pkcs1v15::Signature;
 
 #[test]
 fn test_happy_path() -> Result<(), ICTError> {
@@ -37,8 +38,11 @@ fn test_happy_path() -> Result<(), ICTError> {
     //2 register client and collect secret
     let secret_string =
         register(&db, &id.to_string(), &pem_public_key).expect("failed to register");
-    println!("secret generated (encoded) {}", &secret_string);
-    let secret = Secret::Encoded(secret_string);
+    println!("encrypted secret generated (encoded) {}", &secret_string);
+
+    let encrypted_secret = general_purpose::STANDARD.decode(secret_string).unwrap();
+
+    let secret = private_key.decrypt(Pkcs1v15Encrypt, &encrypted_secret).unwrap();
 
     //4 generate totp using device and secret, and encrypt it, mimicing client
     let totp = TOTP::new(
@@ -46,7 +50,7 @@ fn test_happy_path() -> Result<(), ICTError> {
         6,                          // number of digits
         1,                          // step (in 30-second blocks, 1 = 30s)
         30,                         // period (seconds)
-        secret.to_bytes().unwrap(),
+        secret,
     )?;
     let token = totp.generate_current()?;
     println!("TOTP token generated {}", token);
@@ -56,10 +60,14 @@ fn test_happy_path() -> Result<(), ICTError> {
         _salt: "asdf".to_string(),
     };
     let message = serde_json::to_string(&op_message).unwrap();
+    println!("message {}",message);
 
     // Step 3: Sign the message
     let signing_key = SigningKey::<Sha256>::new(private_key);
     let signature = signing_key.sign(message.as_bytes());
+
+    let verifying_key = VerifyingKey::<Sha256>::new(public_key);
+    verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature)?);
 
     // Step 4: Print base64-encoded signature
     let signature_base64 = general_purpose::STANDARD.encode(signature.to_string());
