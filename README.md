@@ -3,7 +3,7 @@ Done //// 1. Add relays table (uuid|relayId), and db functions for it
 Done //// 2. Implement last operations (related to relays)
 Done //// . Proper logging
 Done //// . Add Web server, with port config, TLS (self certificate)
-. map public operations (register, operate) with web server post methods
+Done //// . map public operations (register, operate) with web server post methods
 . Add RaspPI library to control GPIO and tie it up to relay operations
     add base functions open/close
    call these functions in operate

@@ -28,9 +28,10 @@ struct SecretResponse {
 
 pub fn start_web_server(port: &u32, db: &Db) {
     let db_path2 = db.path.clone();
+    let db_sha = db.totp_sha.clone();
     rouille::start_server(format!("0.0.0.0:{}", port), move |request| {
             let start = Instant::now();
-            let db2 = match Db::newg(db_path2.clone()) {
+            let db2 = match Db::newg(db_path2.clone(),db_sha.clone()) {
                 Ok(db2) => db2,
                 Err(e) => {
                     error!("Could not instantiate Db while processing request with {}",e);

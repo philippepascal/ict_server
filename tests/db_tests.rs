@@ -20,7 +20,7 @@ fn test_device() -> Result<(), ICTError> {
         .format_timestamp_secs()
         .is_test(true)
         .try_init();
-    let db = Db::new_test_db()?;
+    let db = Db::new_test_db("sha256".to_string())?;
 
     let mut rng = OsRng;
     let private_key = RsaPrivateKey::new(&mut rng, 2048).expect("failed to generate a key");
@@ -107,7 +107,7 @@ fn test_relays() -> Result<(), ICTError> {
         .format_timestamp_secs()
         .is_test(true)
         .try_init();
-    let db = Db::new_test_db()?;
+    let db = Db::new_test_db("sha256".to_string())?;
 
     let mut rng = OsRng;
     let private_key = RsaPrivateKey::new(&mut rng, 2048).expect("failed to generate a key");

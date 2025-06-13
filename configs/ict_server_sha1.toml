@@ -6,7 +6,7 @@ path = "db/ict_server.db" #assuming we are running from root of repo
 tls_path = "tls/" #assuming we are running from root of repo
 
 [totp]
-sha = "sha256"
+sha = "sha1"
 
 [logs]
 level = "INFO"

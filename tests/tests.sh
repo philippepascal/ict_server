@@ -1,11 +1,15 @@
 #!/bin/bash
 
+#this test requires the server to run with Sha1 totp. 
+#from the tests directory, run:  "cargo run -- -c ict_server.toml serve -p 3456"
+
 #openssl genpkey -algorithm RSA -out private_pkcs1.pem -pkeyopt rsa_keygen_bits:2048
 #openssl pkcs8 -topk8 -inform PEM -in private_pkcs1.pem -outform PEM -nocrypt -out private_pkcs8.pem
 #openssl pkey -in private_pkcs8.pem -pubout -out public.pem
 
 # Configuration
 SERVER_URL="http://localhost:3456/register"   # ← Replace with your actual server URL
+SERVER_URL2="http://localhost:3456/operate"   # ← Replace with your actual server URL
 KEY_NAME="mykey"                                # base filename
 KEY_BITS=2048
 
@@ -49,24 +53,6 @@ ENCODED_SECRET=$(echo "$RES" | jq -r '.encrypted_secret')
 
 echo "encoded secret $ENCODED_SECRET"
 
-# ENCRYPTED_SECRET=($(echo "$ENCODED_SECRET" | base64 -d | xxd -p -c1))
-
-# ENCRYPTED_SECRET=$(echo "$ENCODED_SECRET" | base64 -d)
-
-# echo "encrypted secret $ENCRYPTED_SECRET"
-
-# DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | \
-# base64 -d | xxd -p -c1 | \
-# openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem" ) 
-
-# echo "decrypted secret $DECRYPTED_SECRET"
-
-# DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | \
-# base64 -d | xxd -p -c1 | \
-# openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem" | \
-# awk 'BEGIN{RS="\0"} NR>1{print; exit}')  # skip padding, print real message
-
-# echo "decrypted secret $DECRYPTED_SECRET"
 
 DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | \
 base64 -d | \
@@ -74,17 +60,43 @@ openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem" )
 
 echo "decrypted secret $DECRYPTED_SECRET"
 
-# DECRYPTED_SECRET=$(echo "$ENCODED_SECRET" | \
-# base64 -d | \
-# openssl pkeyutl -decrypt -inkey "../target/${KEY_NAME}_pkcs1.pem" | \
-# awk 'BEGIN{RS="\0"} NR>1{print; exit}')  # skip padding, print real message
+#sha256 not supported. for this to work, temp change to sha 1 in rust
+# TOKEN=$(oathtool --totp --sha256 -b --now $(( $(date +%s) + 30 )) "$DECRYPTED_SECRET")
+TOKEN=$(oathtool --totp -b "$DECRYPTED_SECRET")
 
-# echo "decrypted secret $DECRYPTED_SECRET"
+echo "token $TOKEN"
 
-# B32=$(echo "$DECRYPTED_SECRET" | xxd -r -p | base32)
+SALT="random_salt_xyz"
 
-# B32=$(echo "$DECRYPTED_SECRET" | base32 -d)
+JSON_PAYLOAD=$(jq -n \
+  --arg token "$TOKEN" \
+  --arg _salt "$SALT" \
+  '{token: $token, _salt: $_salt}')
 
-# echo "$B32"
+echo "payload $JSON_PAYLOAD"
 
-oathtool --totp -b "$DECRYPTED_SECRET"
+SIGNATURE=$(printf '%s' "$JSON_PAYLOAD" | \
+  openssl dgst -sha256 -sign "../target/${KEY_NAME}_pkcs8.pem" | \
+  base64)
+
+echo "signature $SIGNATURE"
+
+FULL_PAYLOAD=$(jq -n \
+--arg id "$UUID" \
+--arg totp_message "$JSON_PAYLOAD" \
+--arg signature "$SIGNATURE" \
+'{id: $id, totp_message: $totp_message, signature: $signature}')
+
+echo "full payload $FULL_PAYLOAD"
+
+curl -X POST "$SERVER_URL2" \
+     -H "Content-Type: application/json" \
+     -d "$FULL_PAYLOAD" \
+     -v
+
+cargo run -- -c ict_server.toml authorize -u $UUID
+
+curl -X POST "$SERVER_URL2" \
+     -H "Content-Type: application/json" \
+     -d "$FULL_PAYLOAD" \
+     -v

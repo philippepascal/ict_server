@@ -1,4 +1,4 @@
-use base64::encode;
+
 use base64::{engine::general_purpose, Engine as _};
 use rsa::pkcs1v15::Signature;
 use rsa::pkcs8::DecodePublicKey;
@@ -82,10 +82,13 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
         ));
     }
 
+    println!("signature encoded {}",signature);
+
     // check signature
     let verifying_key = VerifyingKey::<Sha256>::new(device.wrapped_pk);
     let signature_bytes = general_purpose::STANDARD.decode(signature)
         .map_err(|_| ICTError::Custom("Failed to decode base64 signature".into()))?;
+
     match verifying_key.verify(&message.as_bytes(), &Signature::try_from(signature_bytes.as_slice())?) {
         Ok(()) => (),
         Err(_e) => return Result::Err(ICTError::Custom("Message signature verification failed".to_string())),
@@ -96,8 +99,14 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
         .map_err(|_| ICTError::Custom("Failed to parse JSON message".into()))?;
     let decrypted_token = parsed.token;
 
+    let algo = match db.totp_sha.as_str() {
+        "sha1" => totp_rs::Algorithm::SHA1,
+        "sha512" => totp_rs::Algorithm::SHA512,
+        _ => totp_rs::Algorithm::SHA256,
+    };
+
     let totp = TOTP::new(
-        totp_rs::Algorithm::SHA256, // or SHA256, SHA512
+        algo,
         6,                          // number of digits
         1,                          // step (in 30-second blocks, 1 = 30s)
         30,                         // period (seconds)

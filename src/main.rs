@@ -29,7 +29,7 @@ fn main() {
     info!("Using config file: {}", args.config);
     info!("Using DB file: {}", settings.database.path);
 
-    let db = Db::new(&settings.database.path).unwrap_or_else(|e| {
+    let db = Db::new(&settings.database.path, settings.totp.sha).unwrap_or_else(|e| {
         error!("Failed to open DB with {}", e);
         std::process::exit(1);
     });

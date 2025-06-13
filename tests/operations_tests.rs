@@ -22,7 +22,7 @@ fn test_happy_path() -> Result<(), ICTError> {
         .format_timestamp_secs()
         .is_test(true)
         .try_init();
-    let db = Db::new_test_db()?;
+    let db = Db::new_test_db("sha256".to_string())?;
 
     //1 create a fake client
     let id = Uuid::new_v4();
