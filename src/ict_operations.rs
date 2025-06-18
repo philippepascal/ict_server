@@ -81,9 +81,7 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
             "Will not operate a device/client that is not authorized".to_string(),
         ));
     }
-
-    println!("signature encoded {}",signature);
-
+    
     // check signature
     let verifying_key = VerifyingKey::<Sha256>::new(device.wrapped_pk);
     let signature_bytes = general_purpose::STANDARD.decode(signature)
