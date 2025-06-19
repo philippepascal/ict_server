@@ -8,7 +8,7 @@ Done //// . map public operations (register, operate) with web server post metho
     add base functions open/close
    call these functions in operate
 . Put relay operations under feature flag
-. Install and run on rasp pi zero
+Done //// . Install and run on rasp pi zero
 . logrotate
 . move to electronics (buy relays, wire up)
 . generate OpenSSL certs

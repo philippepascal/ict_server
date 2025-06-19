@@ -16,6 +16,13 @@ use crate::ict_db::Db;
 use crate::ict_db::Device;
 use crate::ict_errors::ICTError;
 
+#[cfg(feature = "gpio")]
+use rppal::gpio::{Gpio, OutputPin};
+#[cfg(feature = "gpio")]
+use std::thread;
+#[cfg(feature = "gpio")]
+use std::time::Duration;
+
 #[derive(Deserialize,Serialize)]
 pub struct OperationMessage {
     pub token: String,
@@ -115,7 +122,22 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
         // here perform the relay logic (close the circuit for limit time)
         let relays = db.get_relays(device.id)?;
         relays.iter().for_each(|relay| {
-            info!("operating relay {} for uuid {}",relay,uuid_as_str);
+            info!("operating relay {} for uuid {}", relay, uuid_as_str);
+            #[cfg(feature = "gpio")]
+            {
+                if let Ok(gpio) = Gpio::new() {
+                    if let Ok(pin) = gpio.get(*relay) {
+                        let mut pin = pin.into_output();
+                        pin.set_high();
+                        thread::sleep(Duration::from_secs(0.5));
+                        pin.set_low();
+                    } else {
+                        info!("Failed to get GPIO pin {}", relay);
+                    }
+                } else {
+                    info!("Failed to initialize GPIO");
+                }
+            }
         });
         Ok(true)
     } else {
