@@ -1,5 +1,6 @@
 use crate::ict_db::Db;
 use crate::ict_operations::{operate, register};
+use crate::ict_config::Settings;
 use log::{info,error};
 use rouille::{router, Response};
 use serde::{Deserialize, Serialize};
@@ -26,7 +27,7 @@ struct SecretResponse {
     encrypted_secret: String,
 }
 
-pub fn start_web_server(port: &u32, db: &Db) {
+pub fn start_web_server(port: &u32, db: &Db, settings: Settings) {
     let db_path2 = db.path.clone();
     let db_sha = db.totp_sha.clone();
     rouille::start_server(format!("0.0.0.0:{}", port), move |request| {
@@ -65,7 +66,7 @@ pub fn start_web_server(port: &u32, db: &Db) {
                         Err(_) => return Response::text("Invalid JSON").with_status_code(400),
                     };
 
-                    match operate(&db2,&body.id,&body.totp_message,&body.signature) {
+                    match operate(&db2,&body.id,&body.totp_message,&body.signature, &settings.pi.close_duration) {
                             Ok(_) => {
                                 info!("Successful operate during web request with uuid {}",&body.id);
                                 Response::text("Operate successful")

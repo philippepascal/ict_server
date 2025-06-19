@@ -1,8 +1,7 @@
 mod ict_args;
-mod ict_config;
 
 use ict_args::Operation;
-use ict_config::load_config;
+use ict_server::ict_config::load_config;
 use ict_server::ict_db::Db;
 use ict_server::ict_operations::{
     associate_relay, authorize, clear_relays, delete_device, describe_client, list_clients,
@@ -29,7 +28,7 @@ fn main() {
     info!("Using config file: {}", args.config);
     info!("Using DB file: {}", settings.database.path);
 
-    let db = Db::new(&settings.database.path, settings.totp.sha).unwrap_or_else(|e| {
+    let db = Db::new(&settings.database.path, settings.totp.sha.clone()).unwrap_or_else(|e| {
         error!("Failed to open DB with {}", e);
         std::process::exit(1);
     });
@@ -73,7 +72,7 @@ fn main() {
             }
         }
         Operation::Operate { uuid, message ,signature} => {
-            match operate(&db, uuid, &message, signature) {
+            match operate(&db, uuid, &message, signature, &settings.pi.close_duration) {
                 Ok(_) => {
                     info!("Successful operate relays of client uuid {}",uuid);
                 }
@@ -108,9 +107,9 @@ fn main() {
                 }
             }
         }
-        Operation::Serve { port } => {
+        Operation::Serve { port} => {
             info!("Starting server on port {}", port);
-            start_web_server(&port, &db);
+            start_web_server(&port, &db, ict_server::ict_config::Settings::clone(&settings));
         }
     }
 }

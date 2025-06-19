@@ -77,7 +77,7 @@ fn test_happy_path() -> Result<(), ICTError> {
     println!("Signature (base64): {}", signature_base64);
 
     //5 operate relays, should fail
-    match operate(&db, &id.to_string(), &message, &signature_base64) {
+    match operate(&db, &id.to_string(), &message, &signature_base64,&1) {
         Ok(result) => {
             assert!(!result);
         }
@@ -101,7 +101,7 @@ fn test_happy_path() -> Result<(), ICTError> {
         .check_current(&token)
         .expect("totp internal check failed")); //internal check
     //9. actual successful call to operate!!
-    assert!(operate(&db, &id.to_string(), &message, &signature_base64).expect("failed to operate"));
+    assert!(operate(&db, &id.to_string(), &message, &signature_base64, &1).expect("failed to operate"));
 
     Ok(())
 }

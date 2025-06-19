@@ -10,3 +10,6 @@ sha = "sha1"
 
 [logs]
 level = "INFO"
+
+[pi]
+close_duration = 1

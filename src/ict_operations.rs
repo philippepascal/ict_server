@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 use rsa::pkcs1v15::VerifyingKey;
 use rsa::signature::Verifier;
 use rsa::sha2::Sha256;
+use std::thread;
+use std::time::Duration;
 
 use crate::ict_db::Db;
 use crate::ict_db::Device;
@@ -18,10 +20,6 @@ use crate::ict_errors::ICTError;
 
 #[cfg(feature = "gpio")]
 use rppal::gpio::{Gpio};
-#[cfg(feature = "gpio")]
-use std::thread;
-#[cfg(feature = "gpio")]
-use std::time::Duration;
 
 #[derive(Deserialize,Serialize)]
 pub struct OperationMessage {
@@ -42,16 +40,10 @@ pub fn register(db: &Db, uuid_as_str: &str, pem_public_key: &str) -> Result<Stri
     };
     db.add_device(&device)?;
 
-    // let encrypted_secret = device.wrapped_pk.encrypt(&mut OsRng, Pkcs1v15Encrypt, &device.totp_secret.to_bytes()?)?;
-
-    // let encrypted_secret = device.wrapped_pk.encrypt(&mut OsRng, Pkcs1v15Encrypt, &device.totp_secret.to_encoded().to_bytes()?)?;
-
     println!("secret {}",&device.totp_secret.to_encoded().to_string());
     let encrypted_secret = device.wrapped_pk.encrypt(&mut OsRng, Pkcs1v15Encrypt, &device.totp_secret.to_encoded().to_string().as_bytes())?;
 
     Ok(general_purpose::STANDARD.encode(&encrypted_secret))
-
-    // Ok(String::from_utf8(encrypted_secret)?)
 }
 
 pub fn authorize(db: &Db, uuid_as_str: &str) -> Result<(), ICTError> {
@@ -78,7 +70,7 @@ pub fn delete_device(db: &Db, uuid_as_str: &str) -> Result<(), ICTError> {
     Ok(())
 }
 
-pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Result<bool, ICTError> {
+pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str, close_duration: &u64) -> Result<bool, ICTError> {
     let uuid = Uuid::parse_str(uuid_as_str)?;
     let device = db.get_device(uuid)?.ok_or(ICTError::Custom(
         "No device with that uuid found".to_string(),
@@ -112,7 +104,7 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
 
     let totp = TOTP::new(
         algo,
-        6,                          // number of digits
+        6,                        // number of digits
         1,                          // step (in 30-second blocks, 1 = 30s)
         30,                         // period (seconds)
         device.totp_secret.to_bytes().unwrap(),
@@ -120,16 +112,36 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
 
     if totp.check_current(&decrypted_token)? {
         // here perform the relay logic (close the circuit for limit time)
+
+        //dumb way to silence warning
+        #[cfg(not(feature = "gpio"))]
+        let _ = close_duration;
+
         let relays = db.get_relays(device.id)?;
         relays.iter().for_each(|relay| {
-            info!("operating relay {} for uuid {}", relay, uuid_as_str);
+            info!("closing relays {} for uuid {}", relay, uuid_as_str);
             #[cfg(feature = "gpio")]
             {
                 if let Ok(gpio) = Gpio::new() {
                     if let Ok(pin) = gpio.get(*relay) {
                         let mut pin = pin.into_output();
                         pin.set_high();
-                        thread::sleep(Duration::from_millis(500));
+                    } else {
+                        info!("Failed to get GPIO pin {}", relay);
+                    }
+                } else {
+                    info!("Failed to initialize GPIO");
+                }
+            }
+        });
+        thread::sleep(Duration::from_millis(close_duration.clone()));
+        relays.iter().for_each(|relay| {
+            info!("re-opening relays {} for uuid {}", relay, uuid_as_str);
+            #[cfg(feature = "gpio")]
+            {
+                if let Ok(gpio) = Gpio::new() {
+                    if let Ok(pin) = gpio.get(*relay) {
+                        let mut pin = pin.into_output();
                         pin.set_low();
                     } else {
                         info!("Failed to get GPIO pin {}", relay);
