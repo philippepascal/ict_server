@@ -86,9 +86,10 @@ fn test_happy_path() -> Result<(), ICTError> {
         }
     }
 
-    //5 add relays
-    associate_relay(&db, &id.to_string(), &2)?;
-    associate_relay(&db, &id.to_string(), &5)?;
+    //5 add relays. 3 bottom bins on right side when sd card is up
+    associate_relay(&db, &id.to_string(), &16)?;
+    associate_relay(&db, &id.to_string(), &20)?;
+    associate_relay(&db, &id.to_string(), &21)?;
 
     //6 authorize device
     authorize(&db, &id.to_string()).expect("failed to authorize");
@@ -100,8 +101,8 @@ fn test_happy_path() -> Result<(), ICTError> {
     assert!(totp
         .check_current(&token)
         .expect("totp internal check failed")); //internal check
-    //9. actual successful call to operate!!
-    assert!(operate(&db, &id.to_string(), &message, &signature_base64,"sha256".to_string(), &1).expect("failed to operate"));
+    //9. actual successful call to operate!! leave relays close for 10 seconds to test electronigs
+    assert!(operate(&db, &id.to_string(), &message, &signature_base64,"sha256".to_string(), &10).expect("failed to operate"));
 
     Ok(())
 }
