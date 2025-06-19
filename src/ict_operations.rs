@@ -17,7 +17,7 @@ use crate::ict_db::Device;
 use crate::ict_errors::ICTError;
 
 #[cfg(feature = "gpio")]
-use rppal::gpio::{Gpio, OutputPin};
+use rppal::gpio::{Gpio};
 #[cfg(feature = "gpio")]
 use std::thread;
 #[cfg(feature = "gpio")]
@@ -129,7 +129,7 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str) -> Re
                     if let Ok(pin) = gpio.get(*relay) {
                         let mut pin = pin.into_output();
                         pin.set_high();
-                        thread::sleep(Duration::from_secs(0.5));
+                        thread::sleep(Duration::from_millis(500));
                         pin.set_low();
                     } else {
                         info!("Failed to get GPIO pin {}", relay);
