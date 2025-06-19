@@ -15,6 +15,11 @@ Done //// . Install and run on rasp pi zero
 . install against ICT server, configure ICT server (if needed, hopefully just piggy back on current config)
 . implement iOS/watch app as client
 .
+. replace rouille with tiny_http or other framework (warning: the following packages contain code that will be rejected by a future version of Rust: buf_redux v0.8.4, multipart v0.18.0)
+
 
 handy:
 RUST_LOG=info cargo test -- --nocapture
+cargo run --features gpio
+#might need sudo 
+RUST_LOG=info cargo test --features gpio -- test_happy_path --nocapture 
