@@ -28,7 +28,7 @@ fn main() {
     info!("Using config file: {}", args.config);
     info!("Using DB file: {}", settings.database.path);
 
-    let db = Db::new(&settings.database.path, settings.totp.sha.clone()).unwrap_or_else(|e| {
+    let db = Db::new(&settings.database.path).unwrap_or_else(|e| {
         error!("Failed to open DB with {}", e);
         std::process::exit(1);
     });
@@ -72,7 +72,7 @@ fn main() {
             }
         }
         Operation::Operate { uuid, message ,signature} => {
-            match operate(&db, uuid, &message, signature, &settings.pi.close_duration) {
+            match operate(&db, uuid, &message, signature, settings.totp.sha, &settings.pi.close_duration) {
                 Ok(_) => {
                     info!("Successful operate relays of client uuid {}",uuid);
                 }

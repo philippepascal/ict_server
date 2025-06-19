@@ -70,7 +70,7 @@ pub fn delete_device(db: &Db, uuid_as_str: &str) -> Result<(), ICTError> {
     Ok(())
 }
 
-pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str, close_duration: &u64) -> Result<bool, ICTError> {
+pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str, sha_algo: String, close_duration: &u64) -> Result<bool, ICTError> {
     let uuid = Uuid::parse_str(uuid_as_str)?;
     let device = db.get_device(uuid)?.ok_or(ICTError::Custom(
         "No device with that uuid found".to_string(),
@@ -96,7 +96,7 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str, close
         .map_err(|_| ICTError::Custom("Failed to parse JSON message".into()))?;
     let decrypted_token = parsed.token;
 
-    let algo = match db.totp_sha.as_str() {
+    let algo = match sha_algo.as_str() {
         "sha1" => totp_rs::Algorithm::SHA1,
         "sha512" => totp_rs::Algorithm::SHA512,
         _ => totp_rs::Algorithm::SHA256,

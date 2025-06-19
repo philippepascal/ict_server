@@ -40,28 +40,27 @@ impl Device {
 pub struct Db {
     pub path: Option<String>,
     conn: Connection,
-    pub totp_sha: String, //yes it's ugly,  but since db is passed everywhere, it's easy
 }
 
 impl Db {
 
-    pub fn newg(db_path: Option<String>, totp_sha: String) -> Result<Self, ICTError> {
+    pub fn newg(db_path: Option<String>) -> Result<Self, ICTError> {
         match db_path {
-            Some(path) => Self::new(&path,totp_sha),
-            None => Self::new_test_db(totp_sha),
+            Some(path) => Self::new(&path),
+            None => Self::new_test_db(),
         }
     }
 
-    pub fn new(db_path: &str,totp_sha: String) -> Result<Self, ICTError> {
+    pub fn new(db_path: &str) -> Result<Self, ICTError> {
         let conn = Connection::open(db_path)?;
-        let db = Db { path: Some(db_path.to_string()), conn ,totp_sha};
+        let db = Db { path: Some(db_path.to_string()), conn};
         db.init()?;
         Ok(db)
     }
 
-    pub fn new_test_db(totp_sha: String) -> Result<Self, ICTError> {
+    pub fn new_test_db() -> Result<Self, ICTError> {
         let conn = Connection::open_in_memory()?;
-        let db = Db { path: None, conn ,totp_sha};
+        let db = Db { path: None, conn};
         db.init()?;
         Ok(db)
     }

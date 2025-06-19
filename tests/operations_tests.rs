@@ -22,7 +22,7 @@ fn test_happy_path() -> Result<(), ICTError> {
         .format_timestamp_secs()
         .is_test(true)
         .try_init();
-    let db = Db::new_test_db("sha256".to_string())?;
+    let db = Db::new_test_db()?;
 
     //1 create a fake client
     let id = Uuid::new_v4();
@@ -77,7 +77,7 @@ fn test_happy_path() -> Result<(), ICTError> {
     println!("Signature (base64): {}", signature_base64);
 
     //5 operate relays, should fail
-    match operate(&db, &id.to_string(), &message, &signature_base64,&1) {
+    match operate(&db, &id.to_string(), &message, &signature_base64,"sha256".to_string(),&1) {
         Ok(result) => {
             assert!(!result);
         }
@@ -101,7 +101,7 @@ fn test_happy_path() -> Result<(), ICTError> {
         .check_current(&token)
         .expect("totp internal check failed")); //internal check
     //9. actual successful call to operate!!
-    assert!(operate(&db, &id.to_string(), &message, &signature_base64, &1).expect("failed to operate"));
+    assert!(operate(&db, &id.to_string(), &message, &signature_base64,"sha256".to_string(), &1).expect("failed to operate"));
 
     Ok(())
 }

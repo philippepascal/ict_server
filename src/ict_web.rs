@@ -29,10 +29,9 @@ struct SecretResponse {
 
 pub fn start_web_server(port: &u32, db: &Db, settings: Settings) {
     let db_path2 = db.path.clone();
-    let db_sha = db.totp_sha.clone();
     rouille::start_server(format!("0.0.0.0:{}", port), move |request| {
             let start = Instant::now();
-            let db2 = match Db::newg(db_path2.clone(),db_sha.clone()) {
+            let db2 = match Db::newg(db_path2.clone()) {
                 Ok(db2) => db2,
                 Err(e) => {
                     error!("Could not instantiate Db while processing request with {}",e);
@@ -66,7 +65,7 @@ pub fn start_web_server(port: &u32, db: &Db, settings: Settings) {
                         Err(_) => return Response::text("Invalid JSON").with_status_code(400),
                     };
 
-                    match operate(&db2,&body.id,&body.totp_message,&body.signature, &settings.pi.close_duration) {
+                    match operate(&db2,&body.id,&body.totp_message,&body.signature, settings.totp.sha.clone(), &settings.pi.close_duration) {
                             Ok(_) => {
                                 info!("Successful operate during web request with uuid {}",&body.id);
                                 Response::text("Operate successful")
