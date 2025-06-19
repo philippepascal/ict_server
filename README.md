@@ -15,3 +15,6 @@ Done //// . Install and run on rasp pi zero
 . install against ICT server, configure ICT server (if needed, hopefully just piggy back on current config)
 . implement iOS/watch app as client
 .
+
+handy:
+RUST_LOG=info cargo test -- --nocapture

@@ -102,7 +102,7 @@ fn test_happy_path() -> Result<(), ICTError> {
         .check_current(&token)
         .expect("totp internal check failed")); //internal check
     //9. actual successful call to operate!! leave relays close for 10 seconds to test electronigs
-    assert!(operate(&db, &id.to_string(), &message, &signature_base64,"sha256".to_string(), &10).expect("failed to operate"));
+    assert!(operate(&db, &id.to_string(), &message, &signature_base64,"sha256".to_string(), &10000).expect("failed to operate"));
 
     Ok(())
 }

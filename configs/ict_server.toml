@@ -12,4 +12,4 @@ sha = "sha256"
 level = "INFO"
 
 [pi]
-close_duration = 1
+close_duration = 1000
