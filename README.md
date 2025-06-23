@@ -20,6 +20,12 @@ Done //// . Install and run on rasp pi zero
 
 handy:
 RUST_LOG=info cargo test -- --nocapture
-cargo run --features gpio
-#might need sudo 
-RUST_LOG=info cargo test --features gpio -- test_happy_path --nocapture 
+cargo run --features gpio -- XXX
+cargo run -- serve -p 3456
+#might need sudo
+RUST_LOG=info cargo test --features gpio -- test_happy_path --nocapture
+sudo shutdown -h now
+cargo run --features gpio -- serve -p 3456
+cargo run --features gpio -- authorize 
+cargo run -- authorize -u E791366E-40CE-4F85-8F92-8B7E6185EDC
+cargo run -- associate-relay -r 10 -u E791366E-40CE-4F85-8F92-8B7E6185EDC1
