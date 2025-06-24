@@ -116,6 +116,8 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str, sha_a
         //dumb way to silence warning
         #[cfg(not(feature = "gpio"))]
         let _ = close_duration;
+        #[cfg(feature = "gpio")]
+        let mut output_pins: Vec<rppal::gpio::OutputPin> = Vec::new();
 
         let relays = db.get_relays(device.id)?;
         relays.iter().for_each(|relay| {
@@ -126,6 +128,7 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str, sha_a
                     if let Ok(pin) = gpio.get(*relay) {
                         let mut pin = pin.into_output();
                         pin.set_high();
+                        output_pins.push(pin); // <-- Hold pin
                     } else {
                         info!("Failed to get GPIO pin {}", relay);
                     }
@@ -134,23 +137,33 @@ pub fn operate(db: &Db, uuid_as_str: &str, message: &str, signature: &str, sha_a
                 }
             }
         });
+
         thread::sleep(Duration::from_millis(close_duration.clone()));
-        relays.iter().for_each(|relay| {
-            info!("re-opening relays {} for uuid {}", relay, uuid_as_str);
-            #[cfg(feature = "gpio")]
-            {
-                if let Ok(gpio) = Gpio::new() {
-                    if let Ok(pin) = gpio.get(*relay) {
-                        let mut pin = pin.into_output();
-                        pin.set_low();
-                    } else {
-                        info!("Failed to get GPIO pin {}", relay);
-                    }
-                } else {
-                    info!("Failed to initialize GPIO");
-                }
-            }
-        });
+
+        info!("re-opening relays for uuid {}",uuid_as_str);
+        #[cfg(feature = "gpio")]
+        {
+            output_pins.iter_mut().for_each(|pin| {
+                info!("re-opening relays {:?} for uuid {}", pin, uuid_as_str);
+                pin.set_low(); // <-- Now safely turn off
+            });
+         }
+        // relays.iter().for_each(|relay| {
+        //     info!("re-opening relays {} for uuid {}", relay, uuid_as_str);
+        //     #[cfg(feature = "gpio")]
+        //     {
+        //         if let Ok(gpio) = Gpio::new() {
+        //             if let Ok(pin) = gpio.get(*relay) {
+        //                 let mut pin = pin.into_output();
+        //                 pin.set_low();
+        //             } else {
+        //                 info!("Failed to get GPIO pin {}", relay);
+        //             }
+        //         } else {
+        //             info!("Failed to initialize GPIO");
+        //         }
+        //     }
+        // });
         Ok(true)
     } else {
         Err(ICTError::Custom("TOTP token is not valid".to_string()))
