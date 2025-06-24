@@ -30,3 +30,6 @@ cargo run --features gpio -- serve -p 3456
 cargo run --features gpio -- authorize 
 cargo run -- authorize -u E791366E-40CE-4F85-8F92-8B7E6185EDC
 cargo run -- associate-relay -r 10 -u E791366E-40CE-4F85-8F92-8B7E6185EDC1
+
+pinctrl
+pinctrl poll 16,20,21
