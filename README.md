@@ -1,35 +1,96 @@
-ToDo:
-Done //// 1. Add relays table (uuid|relayId), and db functions for it
-Done //// 2. Implement last operations (related to relays)
-Done //// . Proper logging
-Done //// . Add Web server, with port config, TLS (self certificate)
-Done //// . map public operations (register, operate) with web server post methods
-. Add RaspPI library to control GPIO and tie it up to relay operations
-    add base functions open/close
-   call these functions in operate
-. Put relay operations under feature flag
-Done //// . Install and run on rasp pi zero
-. logrotate
-. move to electronics (buy relays, wire up)
-. generate OpenSSL certs
-. install against ICT server, configure ICT server (if needed, hopefully just piggy back on current config)
-. implement iOS/watch app as client
-.
-. replace rouille with tiny_http or other framework (warning: the following packages contain code that will be rejected by a future version of Rust: buf_redux v0.8.4, multipart v0.18.0)
+# Identity-based Control Trigger (ICT)
+
+A lightweight, secure web server running on a Raspberry Pi to **authenticate users and activate relays via GPIO**.  
+ICT uses **identity-based authentication (RSA keys + TOTP)** to ensure only authorized devices can trigger actions.
+
+---
+
+## ✨ Features
+- 🔒 **Secure authentication** with RSA keys and TOTP  
+- ⚡ **Relay control** via Raspberry Pi GPIO  
+- 🌐 **REST API** for easy integration  
+- 📜 **Audit logging** of all actions  
+- 🛠 **Lightweight and fast** (built in Rust)  
+
+## Important Notes
+- This is not a production ready project. Be aware that a lot of elbow grease is still needed to properly and securely install and run on a Pi (nginx, logrotate, service configuration, firewall, to name a few). I provide a few examples, but this is highly dependant on your use case.
+- The security claims are my opinion only, use at your own risk. That said, if anyone uses this and find bugs/security risk, please let me know or create a pull request to address the issue.
+
+---
+
+## 📋 To-Do List
+- Replace `rouille` with `tiny_http` (to remove deprecated dependencies: `buf_redux`, `multipart`)  
+
+---
+
+
+## Design
+
+### 📜 Register Action
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant DB as Database
+
+    Client->>Server: POST /register (uuid, public_key)
+    Server->>DB: Store (uuid, public_key)
+    DB-->>Server: Success
+    Server-->>Client: 201 Created (registration successful)
+```
+
+### ⚡ Operate Action
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+    participant DB as Database
+    participant GPIO as Relay GPIO
+
+    Client->>Server: POST /open (Authorization: signed TOTP)
+    Server->>DB: Validate UUID and Key
+    DB-->>Server: Valid/Invalid
+    alt Valid
+        Server->>GPIO: Trigger relay open
+        GPIO-->>Server: OK
+        Server-->>Client: 200 OK (relay opened)
+    else Invalid
+        Server-->>Client: 401 Unauthorized
+    end
+```
 
 
 
-handy:
+---
+
+## 🛠 Handy Commands
+
+```bash
+# Run tests with logs
 RUST_LOG=info cargo test -- --nocapture
-cargo run --features gpio -- XXX
-cargo run -- serve -p 3456
-#might need sudo
-RUST_LOG=info cargo test --features gpio -- test_happy_path --nocapture
-sudo shutdown -h now
+
+# Run with GPIO feature
 cargo run --features gpio -- serve -p 3456
-cargo run --features gpio -- authorize 
+
+# Run server (may require sudo)
+sudo cargo run --features gpio -- serve -p 3456
+
+# Run specific test
+RUST_LOG=info cargo test --features gpio -- test_happy_path --nocapture
+
+# Shutdown Pi
+sudo shutdown -h now
+
+# Authorize a device
+cargo run --features gpio -- authorize
 cargo run -- authorize -u E791366E-40CE-4F85-8F92-8B7E6185EDC
+
+# Associate a relay
 cargo run -- associate-relay -r 10 -u E791366E-40CE-4F85-8F92-8B7E6185EDC1
 
+# Pin control
 pinctrl
 pinctrl poll 16,20,21
+```
