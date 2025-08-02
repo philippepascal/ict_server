@@ -26,6 +26,16 @@ ICT uses **identity-based authentication (RSA keys + TOTP)** to ensure only auth
 
 ## Design
 
+A client needs to first create for itself a UUID and a pair of public/private key. Using a secure enclave for the private key if possible.
+The client then calls the register action, passing its UUID and public key.
+The server will store those, but at this point the client is neither authorized nor has relays associated with it.
+The sercer will then respond with a secret (encrypted with the public key) to be used later by TOTP.
+
+An admin needs to use the command line (same executable) to associate relays and authorize the client. There is no public API to do this by design (simpler, safer), but one could optionally be added.
+
+Once that is done, the client operate a relay by calling the operate action, passing UUID, TOTP and salt in a token signed by the private key.
+Upon receiving the operate call, the server first verify the signature, then the TOTP, and actuate the relay for a duration specified in the configuration.
+
 ### 📜 Register Action
 
 ```mermaid
@@ -35,9 +45,31 @@ sequenceDiagram
     participant DB as Database
 
     Client->>Server: POST /register (uuid, public_key)
-    Server->>DB: Store (uuid, public_key)
+    Server->>DB: Store (uuid, public_key, secret)
     DB-->>Server: Success
-    Server-->>Client: 201 Created (registration successful)
+    Server-->>Client: 201 Created (registration successful) (encrypted secret)
+```
+
+### 📜 Associate Relay Action
+
+```mermaid
+sequenceDiagram
+    participant Command-Line
+    participant DB as Database
+
+    Command-Line->>DB: Store (uuid, relay)
+    DB-->>Command-Line: Success
+```
+
+### 📜 Authorize Action
+
+```mermaid
+sequenceDiagram
+    participant Command-Line
+    participant DB as Database
+
+    Command-Line->>DB: Store (uuid, authorized flag)
+    DB-->>Command-Line: Success
 ```
 
 ### ⚡ Operate Action
@@ -46,14 +78,12 @@ sequenceDiagram
 sequenceDiagram
     participant Client
     participant Server
-    participant DB as Database
     participant GPIO as Relay GPIO
 
-    Client->>Server: POST /open (Authorization: signed TOTP)
-    Server->>DB: Validate UUID and Key
-    DB-->>Server: Valid/Invalid
+    Client->>Server: POST /open (Authorization: signed UUID, TOTP, salt)
+    Server->>Server: Validate Signature and TOTP
     alt Valid
-        Server->>GPIO: Trigger relay open
+        Server->>GPIO: Trigger relays
         GPIO-->>Server: OK
         Server-->>Client: 200 OK (relay opened)
     else Invalid
